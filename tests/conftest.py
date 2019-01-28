@@ -1,30 +1,36 @@
+import hashlib
 import logging
 import os
 import pytest
 import shutil
 import tempfile
 from pathlib import Path
-from util.bin import Executable
+from util.bin import Executable, ExecutionResult
 
 
 def pytest_addoption(parser):
     """
     Register with PyTest options for this test suite
     """
-    group = parser.getgroup('litmus')
-    group.addoption(
-        "--sextractorxx",
-        action="store",
-        dest="sextractorxx",
-        default="${CMAKE_PROJECT_PATH}/SExtractorxx/build.${BINARY_TAG}/bin/SExtractor",
+    parser.addini(
+        'sextractorxx',
+        default='${CMAKE_PROJECT_PATH}/SExtractorxx/build.${BINARY_TAG}/bin/SExtractor',
         help='Location of the SExtractor binary (can use environment variables)',
     )
-    group.addoption(
-        "--data-dir",
-        action="store",
-        dest="data_dir",
+    parser.addini(
+        'data_dir',
         default=os.path.join(os.path.dirname(__file__), '..', 'data'),
         help='Location of test data files',
+    )
+    parser.addini(
+        'sextractorxx_defaults',
+        default=os.path.join(os.path.dirname(__file__), '..', 'sextractorxx.config'),
+        help='Configuration file with the default configuration for SExtractor'
+    )
+    parser.addini(
+        'sextractorxx_output_area',
+        default=tempfile.gettempdir(),
+        help='Where to put the results of the SExtractor runs'
     )
 
 
@@ -34,18 +40,82 @@ def datafiles(request):
     Fixture for the test data directory
     :return: A pathlib.Path object
     """
-    path = Path(request.config.getoption('data_dir'))
+    path = Path(request.config.getini('data_dir'))
     assert os.path.exists(path.name)
     return path
 
 
-@pytest.fixture(scope='session', autouse=True)
-def sextractorxx(request):
+@pytest.fixture(scope='session')
+def sextractorxx_defaults(request):
+    cfg = {}
+    with open(request.config.getini('sextractorxx_defaults')) as cfg_fd:
+        for l in cfg_fd.readlines():
+            k, v = l.strip().split('=', 2)
+            cfg[k] = v
+    return cfg
+
+
+class SExtractorxx(Executable):
+    """
+    Wraps Executable so the default configuration file and additional parameters
+    can be passed via a configuration file.
+    """
+
+    def __init__(self, exe, area, defaults):
+        super(SExtractorxx, self).__init__(exe)
+        self.__area = area
+        self.__defaults = defaults
+        self.__output_dir = None
+        self.__output_catalog = None
+
+    def get_output_directory(self):
+        return self.__output_dir
+
+    def get_output_catalog(self):
+        return self.__output_catalog
+
+    def run_with_config(self, *args, **kwargs):
+        final_args = self.__defaults.copy()
+        for k, v in kwargs.items():
+            final_args[k.replace('_', '-')] = str(v)
+        cfg_hash = hashlib.md5(str(sorted(final_args.items())).encode('utf-8')).hexdigest()
+
+        self.__output_dir = Path(self.__area) / f'sextractorxx_{cfg_hash}'
+        if 'output-file' not in final_args:
+            final_args['output-file'] = self.__output_dir / 'output.fits'
+        self.__output_catalog = final_args['output-file']
+
+        if os.path.exists(self.__output_catalog):
+            return ExecutionResult(0, '', '')
+
+        os.makedirs(self.__output_dir, exist_ok=True)
+        cfg_file = self.__output_dir / 'sextractorxx.config'
+        with open(cfg_file, 'w') as cfg_fd:
+            for k, v in final_args.items():
+                print(f'{k}={v}', file=cfg_fd)
+
+        try:
+            result = super(SExtractorxx, self).run(
+                '--config-file', cfg_file,
+                '--log-level', 'WARN',
+                *args
+            )
+        except:
+            os.unlink(self.__output_catalog)
+        if result.exit_code != 0:
+            os.unlink(self.__output_catalog)
+        return result
+
+
+@pytest.fixture(scope='session')
+def sextractorxx(request, sextractorxx_defaults):
     """
     Fixture for the sExtractor executable
     """
-    return Executable(
-        os.path.expandvars(request.config.getoption('sextractorxx'))
+    return SExtractorxx(
+        os.path.expandvars(request.config.getini('sextractorxx')),
+        os.path.expandvars(request.config.getini('sextractorxx_output_area')),
+        defaults=sextractorxx_defaults
     )
 
 
