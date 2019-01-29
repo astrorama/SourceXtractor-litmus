@@ -60,7 +60,7 @@ def test_location(single_frame):
         ['isophotal_flux', 23000],
     ]
 )
-def test_magnitude(single_frame, flux_column, sum_squared_errors):
+def test_magnitude(single_frame, flux_column, sum_squared_errors, flux2mag):
     """
     Cross-validate flux columns
     """
@@ -70,7 +70,7 @@ def test_magnitude(single_frame, flux_column, sum_squared_errors):
     expected_mags = expected_mags[fluxes > 0]
     fluxes = fluxes[fluxes > 0]
 
-    mags = stuff.flux2mag(fluxes)
+    mags = flux2mag(fluxes)
 
     diff = mags - expected_mags
     diff = diff[np.isnan(diff) == False]

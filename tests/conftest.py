@@ -1,13 +1,11 @@
-import hashlib
-import logging
 import os
 import re
 
 import pytest
-import shutil
 import tempfile
 from pathlib import Path
 from util.bin import Executable, ExecutionResult
+from util import stuff
 
 
 def pytest_addoption(parser):
@@ -33,6 +31,16 @@ def pytest_addoption(parser):
         'sextractorxx_output_area',
         default=tempfile.gettempdir(),
         help='Where to put the results of the SExtractor runs'
+    )
+    parser.addini(
+        'sextractorxx_mag_zeropoint',
+        default=26.,
+        help='Magnitude zeropoint used to convert fluxes to magnitudes'
+    )
+    parser.addini(
+        'sextractorxx_exposure',
+        default=300.,
+        help='Exposure time used to convert fluxes to magnitudes'
     )
 
 
@@ -124,7 +132,7 @@ class SExtractorxx(object):
 @pytest.fixture
 def sextractorxx(request, sextractorxx_defaults):
     """
-    Fixture for the sExtractor executable
+    Fixture for the SExtractor executable
     """
     exe = Executable(os.path.expandvars(request.config.getini('sextractorxx')))
     area = Path(os.path.expandvars(request.config.getini('sextractorxx_output_area')))
@@ -133,3 +141,17 @@ def sextractorxx(request, sextractorxx_defaults):
     else:
         output_dir = area / re.sub('[\[\]]', '_', request.node.name)
     return SExtractorxx(exe, output_dir, sextractorxx_defaults)
+
+
+@pytest.fixture(scope='session')
+def flux2mag(request):
+    """
+    Fixture to convert fluxes to magnitudes using the values configured in the ini file
+    """
+    zeropoint = float(request.config.getini('sextractorxx_mag_zeropoint'))
+    exposure = float(request.config.getini('sextractorxx_exposure'))
+
+    def _flux2mag_wrapper(v):
+        return stuff.flux2mag(v, zeropoint, exposure)
+
+    return _flux2mag_wrapper
