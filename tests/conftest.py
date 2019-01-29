@@ -136,10 +136,20 @@ def sextractorxx(request, sextractorxx_defaults):
     """
     exe = Executable(os.path.expandvars(request.config.getini('sextractorxx')))
     area = Path(os.path.expandvars(request.config.getini('sextractorxx_output_area')))
+
+    components = []
+    for c in request.node.listchain():
+        if isinstance(c, pytest.Module):
+            components.append(c.name)
+
     if request.fixturenames[0] != request.fixturename:
-        output_dir = area / re.sub('[\[\]]', '_', request.fixturenames[0])
+        leaf_name = request.fixturenames[0]
     else:
-        output_dir = area / re.sub('[\[\]]', '_', request.node.name)
+        leaf_name = request.node.name
+
+    components.append(re.sub('[\[\]]', '_', leaf_name))
+
+    output_dir = area / '_'.join(components)
     return SExtractorxx(exe, output_dir, sextractorxx_defaults)
 
 

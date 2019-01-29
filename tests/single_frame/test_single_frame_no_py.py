@@ -1,7 +1,7 @@
 #
-# This test is almost identical to test_single_frame_no_y but it DOES
-# use the measurement configuration file, measuring also three different
-# apertures.
+# This test is almost identical to test_single_frame but it does *NOT*
+# use the measurement configuration file, and limits itself to measure
+# the AutoPhotometry and IsophotalFlux on the detection image.
 #
 # The reason for this two separate runs is that the pre-release emitted different
 # when the measurement frame matched the detection image, and when it was configured
@@ -12,13 +12,6 @@ import numpy as np
 import pytest
 from util import stuff
 from astropy.table import Table
-
-
-@pytest.fixture(scope='session')
-def stuff_simulation(datafiles):
-    stars, galaxies = stuff.parse_stuff_list(datafiles / 'sim09' / 'sim09.list')
-    kdtree, _, _ = stuff.index_sources(stars, galaxies)
-    return stars, galaxies, kdtree
 
 
 @pytest.fixture
@@ -33,7 +26,6 @@ def single_frame(sextractorxx, stuff_simulation, datafiles):
         detection_image=datafiles / 'sim09' / 'sim09.fits',
         weight_image=datafiles / 'sim09' / 'sim09.weight.fits',
         weight_type='weight',
-        python_config_file=datafiles / 'sim09' / 'sim09_single.py'
     )
     assert run.exit_code == 0
 
