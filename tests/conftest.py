@@ -52,8 +52,11 @@ def sextractorxx_defaults(request):
     cfg = {}
     with open(request.config.getini('sextractorxx_defaults')) as cfg_fd:
         for l in cfg_fd.readlines():
-            k, v = l.strip().split('=', 2)
-            cfg[k.replace('-', '_')] = v
+            try:
+                k, v = l.strip().split('=', 2)
+                cfg[k.replace('-', '_')] = v
+            except ValueError:
+                pass
     return cfg
 
 
@@ -106,7 +109,8 @@ class SExtractorxx(object):
 
         result = self.__exe.run(
             '--log-level', 'WARN',
-            *cmd_args
+            *cmd_args,
+            cwd=self.__output_dir
         )
 
         if result.exit_code != 0 and self.__output_catalog and os.path.exists(self.__output_catalog):

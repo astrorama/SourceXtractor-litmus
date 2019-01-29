@@ -28,7 +28,7 @@ class Executable(object):
             raise FileNotFoundError(f'SExtractor binary not found in {exe}')
         self.__exe = exe
 
-    def run(self, *args):
+    def run(self, *args, **kwargs):
         """
         Execute the program as a separate process, and wait for it.
         :param args: Arguments to be passed as-is to the program.
@@ -37,6 +37,6 @@ class Executable(object):
         full_args = [self.__exe] + list(args)
         logging.debug(full_args)
 
-        proc = subprocess.Popen(full_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(full_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
         stdout, stderr = proc.communicate()
         return ExecutionResult(proc.wait(), stdout.decode('utf-8'), stderr.decode('utf-8'))
