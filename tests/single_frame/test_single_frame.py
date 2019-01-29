@@ -4,11 +4,20 @@ from util import stuff
 from astropy.table import Table
 
 
+@pytest.fixture(scope='session')
+def stuff_simulation(datafiles):
+    stars, galaxies = stuff.parse_stuff_list(datafiles / 'sim09' / 'sim09.list')
+    kdtree, _, _ = stuff.index_sources(stars, galaxies)
+    return stars, galaxies, kdtree
+
+
 @pytest.fixture
-def single_frame(sextractorxx, datafiles):
+def single_frame(sextractorxx, stuff_simulation, datafiles):
     """
     Run sextractorxx on a single frame.
     """
+    stars, galaxies, kdtree = stuff_simulation
+
     run = sextractorxx(
         output_properties='SourceIDs,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags',
         detection_image=datafiles / 'sim09' / 'sim09.fits',
@@ -18,10 +27,6 @@ def single_frame(sextractorxx, datafiles):
     assert run.exit_code == 0
 
     catalog = Table.read(sextractorxx.get_output_catalog())
-
-    stars, galaxies = stuff.parse_stuff_list(datafiles / 'sim09' / 'sim09.list')
-    kdtree, _, _ = stuff.index_sources(stars, galaxies)
-
     closest = stuff.get_closest(catalog, kdtree)
 
     return {
