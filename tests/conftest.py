@@ -90,7 +90,9 @@ class SExtractorxx(object):
         if 'config_file' in cfg_args:
             cmd_args.extend(['--config-file', cfg_args.pop('config_file')])
             for k, v in cfg_args.items():
-                if v is not None:
+                if v.lower() == 'true':
+                    cmd_args.extend([f'--{k.replace("_", "-")}'])
+                elif v is not None and v.lower() != 'false':
                     cmd_args.extend([f'--{k.replace("_", "-")}', v])
         # Generate a config file with all settings
         else:

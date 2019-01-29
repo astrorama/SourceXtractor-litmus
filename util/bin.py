@@ -35,7 +35,7 @@ class Executable(object):
         :return:
         """
         full_args = [self.__exe] + list(args)
-        logging.debug(full_args)
+        logging.debug(' '.join([f'"{a}"' for a in full_args]))
 
         proc = subprocess.Popen(full_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
         stdout, stderr = proc.communicate()
