@@ -20,3 +20,34 @@ Markers used in the test suite:
 
 * `pytest.mark.slow`
 * `pytest.mark.regression`
+
+## Parametrized tests
+Some tests are parametrized based on a column, error, etc.
+This avoids writing two separate tests that do basically
+the same thing but based on different parameters.
+
+For instance, when testing the photometry, we may be using
+the isophotal flux, the aperture, the auto aperture, etc.
+But, ultimately, they are all compared in the same manner
+with the original 'stuff' simulation.
+
+For these cases, you will see something like
+
+```python
+@pytest.mark.parametrize(
+    ['flux_column', 'sum_squared_errors'], [
+        ['auto_flux', 16400],
+        ['isophotal_flux', 23000],
+    ]
+)
+```
+ 
+That means the test is going to run twice, once for 
+`auto_flux`, checking the sum of the squared errors is less
+than 16400, and another for `isophotal_flux`, where the error
+limit is 23000.
+
+## Where do these acceptable errors come from, anyway?
+From equivalent runs from SExtractor 2. SExtractor++ should
+do *at least as good*, so these tests try to make sure
+not only that it runs, but that the emitted values are good enough. 
