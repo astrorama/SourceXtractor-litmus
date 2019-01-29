@@ -118,7 +118,7 @@ def get_closest(catalog, kdtree, alpha='world_centroid_alpha', delta='world_cent
     }
 
 
-def flux2mag(fluxes, mag_zeropoint, exposure):
+def flux2mag(fluxes, mag_zeropoint=26., exposure=300.):
     """
     Convert flux to magnitude
     """

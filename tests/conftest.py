@@ -115,12 +115,15 @@ class SExtractorxx(object):
         return result
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def sextractorxx(request, sextractorxx_defaults):
     """
     Fixture for the sExtractor executable
     """
     exe = Executable(os.path.expandvars(request.config.getini('sextractorxx')))
     area = Path(os.path.expandvars(request.config.getini('sextractorxx_output_area')))
-    output_dir = area / re.sub('[\[\]]', '_', request.node.name)
+    if request.fixturenames[0] != request.fixturename:
+        output_dir = area / re.sub('[\[\]]', '_', request.fixturenames[0])
+    else:
+        output_dir = area / re.sub('[\[\]]', '_', request.node.name)
     return SExtractorxx(exe, output_dir, sextractorxx_defaults)

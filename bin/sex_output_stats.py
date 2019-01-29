@@ -27,7 +27,8 @@ def print_stats(label, values):
     print(f'\tMax:    {np.max(values)}')
     print(f'\tMean:   {np.mean(values)}')
     print(f'\tStdDev: {np.std(values)}')
-    print(f'\tsqrt(sum(squared)): {np.sqrt(np.sum(values**2))}')
+    print(f'\tsum(squared): {np.sum(values**2)}')
+
 
 # Options
 parser = ArgumentParser()
@@ -39,7 +40,7 @@ parser.add_argument('--world-centroid-delta', default='DELTA_SKY', help='Declina
 parser.add_argument('--magnitude-zeropoint', type=float, default=26., help='Magnitude zeropoint')
 parser.add_argument('--exposure', type=float, default=300., help='Exposure time')
 parser.add_argument(
-    '--flux-column', action='append', nargs='+',
+    '--flux-column', action='append', type=str, default=[],
     help='Columns that contain fluxes'
 )
 
@@ -63,8 +64,10 @@ print_stats('Distance', np.abs(closest['dist']))
 mag_diffs = {}
 
 for col in args.flux_column:
+    # Filter out zero fluxes!
+    with_flux = catalog[col] > 0
     mag = stuff.flux2mag(catalog[col], args.magnitude_zeropoint, args.exposure)
-    mag_diffs[col] = mag[closest['catalog']] - all_mags[closest['source']]
+    mag_diffs[col] = mag[closest['catalog'][with_flux]] - all_mags[closest['source'][with_flux]]
     print_stats(col, mag_diffs[col])
 
 # Show histogram
