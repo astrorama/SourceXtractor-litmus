@@ -11,7 +11,9 @@ def single_frame(sextractorxx, datafiles):
     """
     run = sextractorxx(
         output_properties='SourceIDs,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags',
-        detection_image=datafiles / 'sim09' / 'sim09.fits'
+        detection_image=datafiles / 'sim09' / 'sim09.fits',
+        weight_image=datafiles / 'sim09' / 'sim09.weight.fits',
+        weight_type='weight'
     )
     assert run.exit_code == 0
 
@@ -44,18 +46,18 @@ def test_location(single_frame):
     From sextractor 2:
         Min:    7.648608605652947e-08
         Max:    0.004024216725538628
-        Mean:   0.00015042975779781874
-        StdDev: 0.0005628207497296902
-        sum(squared): 0.0004999307622104518
+        Mean:   0.0002092625770859535
+        StdDev: 0.0006004324668262142
+        sum(squared): 0.0006537692269678584
     """
     distances = single_frame['distances']
-    assert np.sum(distances ** 2) <= 0.0005
+    assert np.sum(distances ** 2) <= 0.0007
 
 
 @pytest.mark.parametrize(
     ['flux_column', 'sum_squared_errors'], [
-        ['auto_flux', 10000],
-        ['isophotal_flux',  14000],
+        ['auto_flux', 16400],
+        ['isophotal_flux', 23000],
     ]
 )
 def test_magnitude(single_frame, flux_column, sum_squared_errors):
