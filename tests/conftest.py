@@ -1,6 +1,8 @@
 import hashlib
 import logging
 import os
+import re
+
 import pytest
 import shutil
 import tempfile
@@ -51,21 +53,20 @@ def sextractorxx_defaults(request):
     with open(request.config.getini('sextractorxx_defaults')) as cfg_fd:
         for l in cfg_fd.readlines():
             k, v = l.strip().split('=', 2)
-            cfg[k] = v
+            cfg[k.replace('-', '_')] = v
     return cfg
 
 
-class SExtractorxx(Executable):
+class SExtractorxx(object):
     """
     Wraps Executable so the default configuration file and additional parameters
     can be passed via a configuration file.
     """
 
-    def __init__(self, exe, area, defaults):
-        super(SExtractorxx, self).__init__(exe)
-        self.__area = area
+    def __init__(self, exe, output_dir, defaults):
+        self.__exe = exe
+        self.__output_dir = output_dir
         self.__defaults = defaults
-        self.__output_dir = None
         self.__output_catalog = None
 
     def get_output_directory(self):
@@ -74,76 +75,52 @@ class SExtractorxx(Executable):
     def get_output_catalog(self):
         return self.__output_catalog
 
-    def run_with_config(self, *args, **kwargs):
-        final_args = self.__defaults.copy()
-        for k, v in kwargs.items():
-            final_args[k.replace('_', '-')] = str(v)
-        cfg_hash = hashlib.md5(str(sorted(final_args.items())).encode('utf-8')).hexdigest()
+    def __call__(self, *args, **kwargs):
+        os.makedirs(self.__output_dir, exist_ok=True)
 
-        self.__output_dir = Path(self.__area) / f'sextractorxx_{cfg_hash}'
-        if 'output-file' not in final_args:
-            final_args['output-file'] = self.__output_dir / 'output.fits'
-        self.__output_catalog = final_args['output-file']
+        cmd_args = list(args)
+        cfg_args = self.__defaults.copy()
+        cfg_args.update(kwargs)
 
-        if os.path.exists(self.__output_catalog):
+        # Config file provided by the test
+        # Anything extra pass via command line
+        if 'config_file' in cfg_args:
+            cmd_args.extend(['--config-file', cfg_args.pop('config_file')])
+            for k, v in cfg_args.items():
+                if v is not None:
+                    cmd_args.extend([f'--{k.replace("_", "-")}', v])
+        # Generate a config file with all settings
+        else:
+            if 'output_file' not in cfg_args:
+                cfg_args['output_file'] = self.__output_dir / 'output.fits'
+            cfg_file = self.__output_dir / 'sextractorxx.config'
+            with open(cfg_file, 'w') as cfg_fd:
+                for k, v in cfg_args.items():
+                    if v is not None:
+                        print(f'{k.replace("_", "-")}={v}', file=cfg_fd)
+            cmd_args.extend(['--config-file', cfg_file])
+
+        self.__output_catalog = cfg_args.get('output_file', None)
+        if self.__output_catalog and os.path.exists(self.__output_catalog):
             return ExecutionResult(0, '', '')
 
-        os.makedirs(self.__output_dir, exist_ok=True)
-        cfg_file = self.__output_dir / 'sextractorxx.config'
-        with open(cfg_file, 'w') as cfg_fd:
-            for k, v in final_args.items():
-                print(f'{k}={v}', file=cfg_fd)
+        result = self.__exe.run(
+            '--log-level', 'WARN',
+            *cmd_args
+        )
 
-        try:
-            result = super(SExtractorxx, self).run(
-                '--config-file', cfg_file,
-                '--log-level', 'WARN',
-                *args
-            )
-        except:
+        if result.exit_code != 0 and self.__output_catalog and os.path.exists(self.__output_catalog):
             os.unlink(self.__output_catalog)
-        if result.exit_code != 0:
-            os.unlink(self.__output_catalog)
+
         return result
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def sextractorxx(request, sextractorxx_defaults):
     """
     Fixture for the sExtractor executable
     """
-    return SExtractorxx(
-        os.path.expandvars(request.config.getini('sextractorxx')),
-        os.path.expandvars(request.config.getini('sextractorxx_output_area')),
-        defaults=sextractorxx_defaults
-    )
-
-
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    # From
-    # https://docs.pytest.org/en/latest/example/simple.html#making-test-result-information-available-in-fixtures
-
-    # execute all other hooks to obtain the report object
-    outcome = yield
-    rep = outcome.get_result()
-
-    # set a report attribute for each phase of a call, which can
-    # be "setup", "call", "teardown"
-
-    setattr(item, "rep_" + rep.when, rep)
-
-
-@pytest.fixture
-def output_directory(request):
-    """
-    Fixture for an output directory that will be cleaned up after the test
-    is done. If the test fails, it will *not* clean the directory
-    """
-    temp_dir = tempfile.mkdtemp(prefix='sextractorxx')
-
-    yield Path(temp_dir)
-    if request.node.rep_setup.passed and request.node.rep_call.failed:
-        logging.warning(f'Test failed, keeping the output directory "{temp_dir}"')
-    else:
-        shutil.rmtree(temp_dir)
+    exe = Executable(os.path.expandvars(request.config.getini('sextractorxx')))
+    area = Path(os.path.expandvars(request.config.getini('sextractorxx_output_area')))
+    output_dir = area / re.sub('[\[\]]', '_', request.node.name)
+    return SExtractorxx(exe, output_dir, sextractorxx_defaults)

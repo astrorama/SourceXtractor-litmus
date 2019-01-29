@@ -3,21 +3,20 @@ import numpy as np
 from astropy.io import fits
 
 
-def test_fits_output_file(sextractorxx, datafiles, output_directory):
+def test_fits_output_file(sextractorxx, datafiles):
     """
     Run SExtractor asking for FITS output on a file
     """
     single_source_fits = datafiles / 'single_source.fits'
     assert os.path.exists(single_source_fits)
 
-    output_catalog = output_directory / 'output.fits'
+    output_catalog = sextractorxx.get_output_directory() / 'output.fits'
 
-    run = sextractorxx.run(
-        '--detection-image', single_source_fits,
-        '--psf-fwhm', '2', '--psf-pixelscale', '1',
-        '--output-file-format', 'FITS',
-        '--output-file', output_catalog,
-        '--output-properties', 'SourceIDs,PixelCentroid'
+    run = sextractorxx(
+        detection_image=single_source_fits,
+        output_file_format='FITS',
+        output_file=output_catalog,
+        output_properties='SourceIDs,PixelCentroid'
     )
     assert run.exit_code == 0
     assert os.path.exists(output_catalog)
