@@ -107,7 +107,7 @@ def get_closest(catalog, kdtree, alpha='world_centroid_alpha', delta='world_cent
     index_c = []
     index_s = []
     for i, e in enumerate(catalog):
-        d, s = kdtree.query([e['world_centroid_alpha'], e['world_centroid_delta']], 1)
+        d, s = kdtree.query([e[alpha], e[delta]], 1)
         distances.append(d)
         index_c.append(i)
         index_s.append(s)
@@ -116,6 +116,13 @@ def get_closest(catalog, kdtree, alpha='world_centroid_alpha', delta='world_cent
         'catalog': np.array(index_c),
         'source': np.array(index_s),
     }
+
+
+def flux2mag(fluxes, mag_zeropoint, exposure):
+    """
+    Convert flux to magnitude
+    """
+    return mag_zeropoint - 2.5 * np.log10(fluxes / exposure)
 
 
 if __name__ == '__main__':
