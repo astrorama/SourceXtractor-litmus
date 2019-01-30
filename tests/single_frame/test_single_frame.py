@@ -27,6 +27,7 @@ def single_frame(sextractorxx, stuff_simulation, datafiles, module_output_area):
     run = sextractorxx(
         output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags',
         detection_image=datafiles / 'sim09' / 'sim09_r_01.fits',
+        psf_file=datafiles / 'sim09' / 'sim09_r_01.psf',
         python_config_file=datafiles / 'sim09' / 'sim09_single.py'
     )
     assert run.exit_code == 0

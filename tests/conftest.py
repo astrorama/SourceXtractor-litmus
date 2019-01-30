@@ -50,7 +50,7 @@ def datafiles(request):
     Fixture for the test data directory
     :return: A pathlib.Path object
     """
-    path = Path(request.config.getini('data_dir'))
+    path = Path(os.path.abspath(request.config.getini('data_dir')))
     assert os.path.exists(path.name)
     return path
 
@@ -68,13 +68,14 @@ def module_output_area(request):
 
 
 @pytest.fixture(scope='session')
-def sextractorxx_defaults(request):
+def sextractorxx_defaults(request, datafiles):
+    os.environ['DATADIR'] = str(datafiles)
     cfg = {}
     with open(request.config.getini('sextractorxx_defaults')) as cfg_fd:
         for l in cfg_fd.readlines():
             try:
                 k, v = l.strip().split('=', 2)
-                cfg[k.replace('-', '_')] = v
+                cfg[k.replace('-', '_')] = os.path.expandvars(v)
             except ValueError:
                 pass
     return cfg
