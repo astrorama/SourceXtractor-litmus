@@ -27,7 +27,7 @@ def print_stats(label, values):
     print(f'\tMax:    {np.max(values)}')
     print(f'\tMean:   {np.mean(values)}')
     print(f'\tStdDev: {np.std(values)}')
-    print(f'\tsum(squared): {np.sum(values**2)}')
+    print(f'\tsum(squared): {np.sum(values ** 2)}')
 
 
 # Options
@@ -64,9 +64,15 @@ print_stats('Distance', np.abs(closest['dist']))
 mag_diffs = {}
 
 for col in args.flux_column:
+    if ':' in col:
+        name, idxs_str = col.split(':', 2)
+        idxs = [slice(None)] + [int(idx) for idx in idxs_str.split(':')]
+        fluxes = catalog[name][tuple(idxs)]
+    else:
+        fluxes = catalog[col]
     # Filter out zero fluxes!
-    with_flux = catalog[col] > 0
-    mag = stuff.flux2mag(catalog[col], args.magnitude_zeropoint, args.exposure)
+    with_flux = fluxes > 0
+    mag = stuff.flux2mag(fluxes, args.magnitude_zeropoint, args.exposure)
     mag_diffs[col] = mag[closest['catalog'][with_flux]] - all_mags[closest['source'][with_flux]]
     print_stats(col, mag_diffs[col])
 
