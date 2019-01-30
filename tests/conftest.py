@@ -55,6 +55,18 @@ def datafiles(request):
     return path
 
 
+@pytest.fixture(scope='module')
+def module_output_area(request):
+    """
+    Generate a path where a test module should store its output files
+    """
+    area = Path(os.path.expandvars(request.config.getini('sextractorxx_output_area')))
+    for c in request.node.listchain():
+        if isinstance(c, pytest.Module):
+            area = area / c.name
+    return area
+
+
 @pytest.fixture(scope='session')
 def sextractorxx_defaults(request):
     cfg = {}
@@ -82,6 +94,9 @@ class SExtractorxx(object):
 
     def get_output_directory(self):
         return self.__output_dir
+
+    def set_output_directory(self, output_dir):
+        self.__output_dir = output_dir
 
     def get_output_catalog(self):
         return self.__output_catalog
@@ -130,27 +145,14 @@ class SExtractorxx(object):
 
 
 @pytest.fixture
-def sextractorxx(request, sextractorxx_defaults):
+def sextractorxx(request, sextractorxx_defaults, module_output_area):
     """
     Fixture for the SExtractor executable
     """
     exe = Executable(os.path.expandvars(request.config.getini('sextractorxx')))
-    area = Path(os.path.expandvars(request.config.getini('sextractorxx_output_area')))
 
-    components = []
-    for c in request.node.listchain():
-        if isinstance(c, pytest.Module):
-            components.append(c.name)
-
-    if request.fixturenames[0] != request.fixturename:
-        leaf_name = request.fixturenames[0]
-    else:
-        leaf_name = request.node.name
-
-    components.append(re.sub('[\[\]]', '_', leaf_name))
-
-    output_dir = area / '_'.join(components)
-    return SExtractorxx(exe, output_dir, sextractorxx_defaults)
+    test_output_area = module_output_area / request.node.name
+    return SExtractorxx(exe, test_output_area, sextractorxx_defaults)
 
 
 @pytest.fixture(scope='session')

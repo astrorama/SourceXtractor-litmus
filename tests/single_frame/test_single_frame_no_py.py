@@ -15,17 +15,20 @@ from astropy.table import Table
 
 
 @pytest.fixture
-def single_frame(sextractorxx, stuff_simulation, datafiles):
+def single_frame(sextractorxx, stuff_simulation, datafiles, module_output_area):
     """
-    Run sextractorxx on a single frame.
+    Run sextractorxx on a single frame. Overrides the output area per test so
+    SExtractor is only run once for this setup
     """
+    sextractorxx.set_output_directory(module_output_area)
+
     stars, galaxies, kdtree = stuff_simulation
 
     run = sextractorxx(
         output_properties='SourceIDs,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags',
         detection_image=datafiles / 'sim09' / 'sim09.fits',
         weight_image=datafiles / 'sim09' / 'sim09.weight.fits',
-        weight_type='weight',
+        weight_type='weight'
     )
     assert run.exit_code == 0
 

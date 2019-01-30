@@ -14,7 +14,7 @@ from util import stuff
 from astropy.table import Table
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def stuff_simulation(datafiles):
     stars, galaxies = stuff.parse_stuff_list(datafiles / 'sim09' / 'sim09.list')
     kdtree, _, _ = stuff.index_sources(stars, galaxies)
@@ -22,10 +22,13 @@ def stuff_simulation(datafiles):
 
 
 @pytest.fixture
-def single_frame(sextractorxx, stuff_simulation, datafiles):
+def single_frame(sextractorxx, stuff_simulation, datafiles, module_output_area):
     """
-    Run sextractorxx on a single frame.
+    Run sextractorxx on a single frame. Overrides the output area per test so
+    SExtractor is only run once for this setup
     """
+    sextractorxx.set_output_directory(module_output_area)
+
     stars, galaxies, kdtree = stuff_simulation
 
     run = sextractorxx(
