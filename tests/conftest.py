@@ -132,11 +132,7 @@ class SExtractorxx(object):
         if self.__output_catalog and os.path.exists(self.__output_catalog):
             return ExecutionResult(0, '', '')
 
-        result = self.__exe.run(
-            '--log-level', 'WARN',
-            *cmd_args,
-            cwd=self.__output_dir
-        )
+        result = self.__exe.run(*cmd_args, cwd=self.__output_dir)
 
         if result.exit_code != 0 and self.__output_catalog and os.path.exists(self.__output_catalog):
             os.unlink(self.__output_catalog)
