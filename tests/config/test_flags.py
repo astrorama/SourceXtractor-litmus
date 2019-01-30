@@ -50,7 +50,7 @@ def test_psf_pixel_scale_missing(sextractorxx, datafiles):
     """
     Regression test: --psf-fwhm without --psf-pixelscale segfaulted
     """
-    single_source_fits = datafiles / 'single_source.fits'
+    single_source_fits = datafiles / 'simple' / 'saturated.fits'
 
     run = sextractorxx(
         detection_image=single_source_fits,

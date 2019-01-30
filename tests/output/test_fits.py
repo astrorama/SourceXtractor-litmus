@@ -7,7 +7,7 @@ def test_fits_output_file(sextractorxx, datafiles):
     """
     Run SExtractor asking for FITS output on a file
     """
-    single_source_fits = datafiles / 'single_source.fits'
+    single_source_fits = datafiles / 'simple' / 'saturated.fits'
     assert os.path.exists(single_source_fits)
 
     output_catalog = sextractorxx.get_output_directory() / 'output.fits'
@@ -29,5 +29,5 @@ def test_fits_output_file(sextractorxx, datafiles):
     # Source ID
     assert table['source_id'][0] == 1
     # Coordinates
-    assert np.isclose(table['pixel_centroid_x'][0], 82.2261)
-    assert np.isclose(table['pixel_centroid_y'][0], 114.604)
+    assert np.isclose(table['pixel_centroid_x'][0], 21.5819)
+    assert np.isclose(table['pixel_centroid_y'][0], 24.0353)

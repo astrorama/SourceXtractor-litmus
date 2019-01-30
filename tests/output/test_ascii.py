@@ -7,7 +7,7 @@ def test_ascii_output_stdout(sextractorxx, datafiles):
     """
     Run SExtractor asking for ASCII output on the standard output
     """
-    single_source_fits = datafiles / 'single_source.fits'
+    single_source_fits = datafiles / 'simple' / 'saturated.fits'
     assert os.path.exists(single_source_fits)
 
     run = sextractorxx(
@@ -23,15 +23,15 @@ def test_ascii_output_stdout(sextractorxx, datafiles):
     # Source ID
     assert table[0][0] == 1
     # Coordinates
-    assert np.isclose(table[0][2], 82.2261)
-    assert np.isclose(table[0][3], 114.604)
+    assert np.isclose(table[0][2], 21.5819)
+    assert np.isclose(table[0][3], 24.0353)
 
 
 def test_ascii_output_file(sextractorxx, datafiles):
     """
     Run SExtractor asking for ASCII output on a file
     """
-    single_source_fits = datafiles / 'single_source.fits'
+    single_source_fits = datafiles / 'simple' / 'saturated.fits'
     assert os.path.exists(single_source_fits)
 
     output_catalog = sextractorxx.get_output_directory() / 'output.txt'
@@ -50,5 +50,5 @@ def test_ascii_output_file(sextractorxx, datafiles):
     # Source ID
     assert table[0][0] == 1
     # Coordinates
-    assert np.isclose(table[0][2], 82.2261)
-    assert np.isclose(table[0][3], 114.604)
+    assert np.isclose(table[0][2], 21.5819)
+    assert np.isclose(table[0][3], 24.0353)
