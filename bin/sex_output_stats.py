@@ -40,7 +40,7 @@ parser.add_argument('--world-centroid-delta', default='DELTA_SKY', help='Declina
 parser.add_argument('--magnitude-zeropoint', type=float, default=26., help='Magnitude zeropoint')
 parser.add_argument('--exposure', type=float, default=300., help='Exposure time')
 parser.add_argument(
-    '--flux-column', action='append', type=str, default=[],
+    '-f', '--flux-column', action='append', type=str, default=[],
     help='Columns that contain fluxes'
 )
 
