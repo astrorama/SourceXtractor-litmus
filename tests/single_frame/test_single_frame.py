@@ -14,13 +14,6 @@ from util import stuff
 from astropy.table import Table
 
 
-@pytest.fixture(scope='module')
-def stuff_simulation(datafiles):
-    stars, galaxies = stuff.parse_stuff_list(datafiles / 'sim09' / 'sim09.list')
-    kdtree, _, _ = stuff.index_sources(stars, galaxies)
-    return stars, galaxies, kdtree
-
-
 @pytest.fixture
 def single_frame(sextractorxx, stuff_simulation, datafiles, module_output_area):
     """
@@ -32,16 +25,14 @@ def single_frame(sextractorxx, stuff_simulation, datafiles, module_output_area):
     stars, galaxies, kdtree = stuff_simulation
 
     run = sextractorxx(
-        output_properties='SourceIDs,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags',
-        detection_image=datafiles / 'sim09' / 'sim09.fits',
-        weight_image=datafiles / 'sim09' / 'sim09.weight.fits',
-        weight_type='weight',
+        output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags',
+        detection_image=datafiles / 'sim09' / 'sim09_r_01.fits',
         python_config_file=datafiles / 'sim09' / 'sim09_single.py'
     )
     assert run.exit_code == 0
 
     catalog = Table.read(sextractorxx.get_output_catalog())
-    closest = stuff.get_closest(catalog, kdtree)
+    closest = stuff.get_closest(catalog, kdtree, alpha='pixel_centroid_x', delta='pixel_centroid_y')
 
     return {
         'output': catalog,
@@ -53,30 +44,29 @@ def single_frame(sextractorxx, stuff_simulation, datafiles, module_output_area):
 def test_detection(single_frame):
     """
     Quick test to verify there are objects detected.
-    sextractor 2 detects 1473, but we can not really expect to have exactly the same.
     Just check there are a reasonable amount.
     """
-    assert 500 < len(single_frame['output']['world_centroid_alpha']) < 2000
+    assert 50 < len(single_frame['output']['world_centroid_alpha']) < 1000
 
 
 def test_location(single_frame):
     """
-    Cross-validate the coordinates (alpha and delta) with the original suff simulation.
-    From sextractor 2:
-        Min:    7.648608605652947e-08
-        Max:    0.004024216725538628
-        Mean:   0.0002092625770859535
-        StdDev: 0.0006004324668262142
-        sum(squared): 0.0006537692269678584
+    Cross-validate the coordinates (X and Y for the single frame) with the original stuff simulation.
+    Distance
+        Min:    0.004604582201188226
+        Max:    8.81317221359912
+        Mean:   0.5255459265590932
+        StdDev: 0.8319973288425666
+        sum(squared): 244.04135518325353
     """
     distances = single_frame['distances']
-    assert np.sum(distances ** 2) <= 0.0007
+    assert np.sum(distances ** 2) <= 0.017
 
 
 @pytest.mark.parametrize(
     ['flux_column', 'sum_squared_errors'], [
-        ['auto_flux', 16400],
-        ['isophotal_flux', 23000],
+        ['auto_flux', 46],
+        ['isophotal_flux', 300],
     ]
 )
 def test_magnitude(single_frame, flux_column, sum_squared_errors, flux2mag):
