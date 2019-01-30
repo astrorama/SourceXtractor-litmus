@@ -73,6 +73,8 @@ def sextractorxx_defaults(request, datafiles):
     cfg = {}
     with open(request.config.getini('sextractorxx_defaults')) as cfg_fd:
         for l in cfg_fd.readlines():
+            if '#' in l:
+                l, _ = l.split('#', 2)
             try:
                 k, v = l.strip().split('=', 2)
                 cfg[k.replace('-', '_')] = os.path.expandvars(v)
