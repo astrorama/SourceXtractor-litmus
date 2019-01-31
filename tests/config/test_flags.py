@@ -57,3 +57,13 @@ def test_psf_pixel_scale_missing(sextractorxx, datafiles):
         psf_fwhm='2', psf_pixelscale=None,
     )
     assert run.exit_code > 0
+
+
+def test_missing_detection_image(sextractorxx):
+    """
+    Pass a detection image that does not exist.
+    """
+    run = sextractorxx(
+        detection_image='/tmp/does/surely/not/exist.fits'
+    )
+    assert run.exit_code > 0
