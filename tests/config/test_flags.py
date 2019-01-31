@@ -1,3 +1,5 @@
+import tempfile
+
 import pytest
 import re
 
@@ -65,5 +67,18 @@ def test_missing_detection_image(sextractorxx):
     """
     run = sextractorxx(
         detection_image='/tmp/does/surely/not/exist.fits'
+    )
+    assert run.exit_code > 0
+
+
+def test_malformed_detection_image(sextractorxx):
+    """
+    Try opining a malformed image
+    """
+    malformed = tempfile.NamedTemporaryFile()
+    malformed.write(b'\0')
+    malformed.flush()
+    run = sextractorxx(
+        detection_image=malformed.name
     )
     assert run.exit_code > 0
