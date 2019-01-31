@@ -7,6 +7,7 @@
 # when the measurement frame matched the detection image, and when it was configured
 # separately
 #
+import os
 
 import numpy as np
 import pytest
@@ -24,15 +25,17 @@ def single_frame(sextractorxx, stuff_simulation, datafiles, module_output_area):
 
     stars, galaxies, kdtree = stuff_simulation
 
-    run = sextractorxx(
-        output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags',
-        detection_image=datafiles / 'sim09' / 'sim09_r_01.fits',
-        psf_file=datafiles / 'sim09' / 'sim09_r_01.psf',
-        python_config_file=datafiles / 'sim09' / 'sim09_single.py'
-    )
-    assert run.exit_code == 0
+    output_catalog = module_output_area / 'output.fits'
+    if not os.path.exists(output_catalog):
+        run = sextractorxx(
+            output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags',
+            detection_image=datafiles / 'sim09' / 'sim09_r_01.fits',
+            psf_file=datafiles / 'sim09' / 'sim09_r_01.psf',
+            python_config_file=datafiles / 'sim09' / 'sim09_single.py'
+        )
+        assert run.exit_code == 0
 
-    catalog = Table.read(sextractorxx.get_output_catalog())
+    catalog = Table.read(output_catalog)
     closest = stuff.get_closest(catalog, kdtree, alpha='pixel_centroid_x', delta='pixel_centroid_y')
 
     return {
