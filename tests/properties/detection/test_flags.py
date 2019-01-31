@@ -4,7 +4,7 @@ from astropy.table import Table
 from util import stuff
 
 
-def test_saturated_keywork(sextractorxx, datafiles):
+def test_saturated_keyword(sextractorxx, datafiles):
     """
     Check if the saturated flag is set based on the image header when the configuration
     does not specify.
