@@ -53,4 +53,23 @@ def test_boundary(sextractorxx, datafiles):
     catalog = Table.read(sextractorxx.get_output_catalog())
 
     assert len(catalog) == 3
-    assert np.sum(catalog['source_flags'])
+    assert np.sum(
+        (catalog['source_flags'] & int(stuff.SourceFlags.BOUNDARY)).astype(np.bool)) == 2
+
+
+def test_blended(sextractorxx, datafiles):
+    neighbours_fits = datafiles / 'simple' / 'neighbours.fits'
+    run = sextractorxx(
+        detection_image=neighbours_fits,
+        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        threshold_value=2,
+        partition_multithreshold=True,
+        detect_minarea=80
+    )
+    assert run.exit_code == 0
+
+    catalog = Table.read(sextractorxx.get_output_catalog())
+
+    assert len(catalog) == 2
+    assert np.sum(
+        (catalog['source_flags'] & int(stuff.SourceFlags.BLENDED)).astype(np.bool)) == 2
