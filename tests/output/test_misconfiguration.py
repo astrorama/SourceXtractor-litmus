@@ -1,6 +1,3 @@
-import os
-
-
 def test_output_directory_missing(sextractorxx, datafiles):
     """
     The output directory does not exist.
@@ -15,3 +12,17 @@ def test_output_directory_missing(sextractorxx, datafiles):
         output_properties='SourceIDs,PixelCentroid'
     )
     assert run.exit_code > 0
+
+
+def test_wrong_output_property(sextractorxx, datafiles):
+    """
+    Ask for a property that does not exist
+    """
+    single_source_fits = datafiles / 'simple' / 'saturated.fits'
+    run = sextractorxx(
+        detection_image=single_source_fits,
+        output_file_format='FITS',
+        output_properties='SourceIDs,PixelCentroid,ThisIsAnInvalidPropertyIHope'
+    )
+    assert run.exit_code > 0
+
