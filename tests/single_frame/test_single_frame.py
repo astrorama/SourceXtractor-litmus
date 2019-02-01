@@ -1,7 +1,6 @@
 #
-# This test is almost identical to test_single_frame_no_y but it DOES
-# use the measurement configuration file, measuring also three different
-# apertures.
+# This test is almost identical to test_single_frame_no_p[y but it *DOES*
+# use the measurement configuration file,.
 #
 # The reason for this two separate runs is that the pre-release emitted different
 # when the measurement frame matched the detection image, and when it was configured
@@ -11,19 +10,19 @@ import os
 
 import numpy as np
 import pytest
+
 from util import stuff
 from astropy.table import Table
 
 
 @pytest.fixture
-def single_frame(sextractorxx, stuff_simulation, datafiles, module_output_area):
+def single_frame_catalog(sextractorxx, datafiles, module_output_area, signal_to_noise_ratio):
     """
     Run sextractorxx on a single frame. Overrides the output area per test so
-    SExtractor is only run once for this setup
+    SExtractor is only run once for this setup.
+    The output is filtered by signal/noise, and sorted by location, so cross-matching is easier
     """
     sextractorxx.set_output_directory(module_output_area)
-
-    stars, galaxies, kdtree = stuff_simulation
 
     output_catalog = module_output_area / 'output.fits'
     if not os.path.exists(output_catalog):
@@ -36,55 +35,73 @@ def single_frame(sextractorxx, stuff_simulation, datafiles, module_output_area):
         assert run.exit_code == 0
 
     catalog = Table.read(output_catalog)
-    closest = stuff.get_closest(catalog, kdtree, alpha='pixel_centroid_x', delta='pixel_centroid_y')
-
-    return {
-        'output': catalog,
-        'distances': closest['dist'],
-        'expected_mags': np.append(stars.mag, galaxies.mag)[closest['source']]
-    }
+    bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= signal_to_noise_ratio
+    return np.sort(catalog[bright_filter], order=('world_centroid_alpha', 'world_centroid_delta'))
 
 
-def test_detection(single_frame):
+def test_detection(single_frame_catalog, reference):
     """
-    Quick test to verify there are objects detected.
-    Just check there are a reasonable amount.
+    Test that the number of results matches the reference, and that they are reasonably close
     """
-    assert 50 < len(single_frame['output']['world_centroid_alpha']) < 1000
+    assert len(single_frame_catalog) > 0
+    assert len(single_frame_catalog) == len(reference)
 
 
-def test_location(single_frame):
+def test_location(single_frame_catalog, reference, stuff_simulation):
     """
-    Cross-validate the coordinates (X and Y for the single frame) with the original stuff simulation.
-    Distance
-        Min:    0.004604582201188226
-        Max:    8.81317221359912
-        Mean:   0.5255459265590932
-        StdDev: 0.8319973288425666
-        sum(squared): 244.04135518325353
+    The detections should be at least as close as the reference to the truth.
+    Single frame simulations are in pixel coordinates.
     """
-    distances = single_frame['distances']
-    assert np.sum(distances ** 2) <= 0.017
+    _, _, kdtree = stuff_simulation
+
+    det_closest = stuff.get_closest(
+        single_frame_catalog, kdtree
+    )
+    ref_closest = stuff.get_closest(
+        reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
+    )
+
+    assert np.mean(det_closest['dist']) <= np.mean(ref_closest['dist'])
+
+
+def _get_column(catalog, col):
+    """
+    Convenience function to allow accessing multidimensional cells
+    """
+    if ':' in col:
+        name, idxs_str = col.split(':', 1)
+        idxs = [slice(None)] + [int(idx) for idx in idxs_str.split(':')]
+        return catalog[name][tuple(idxs)]
+    else:
+        return catalog[col]
 
 
 @pytest.mark.parametrize(
-    ['flux_column', 'sum_squared_errors'], [
-        ['auto_flux', 46],
-        ['isophotal_flux', 300],
+    ['mag_column', 'reference_mag_column'], [
+        [['isophotal_mag', 'isophotal_mag_err'], ['MAG_ISO', 'MAGERR_ISO']],
+        [['auto_mag', 'auto_mag_err'], ['MAG_AUTO', 'MAGERR_AUTO']],
+        [['aperture_mag:0:0', 'aperture_mag_err:0:0'], ['MAG_APER:0', 'MAGERR_APER:0']],
+        [['aperture_mag:0:1', 'aperture_mag_err:0:1'], ['MAG_APER:1', 'MAGERR_APER:1']],
+        [['aperture_mag:0:2', 'aperture_mag_err:0:2'], ['MAG_APER:2', 'MAGERR_APER:2']],
     ]
 )
-def test_magnitude(single_frame, flux_column, sum_squared_errors, flux2mag):
+def test_magnitude(single_frame_catalog, reference, mag_column, reference_mag_column, stuff_simulation, tolerances):
     """
-    Cross-validate flux columns
+    Cross-validate flux columns. The measured magnitudes should be at least as close
+    to the truth as the reference catalog (within a tolerance).
     """
-    expected_mags = single_frame['expected_mags']
-    fluxes = single_frame['output'][flux_column]
+    stars, galaxies, kdtree = stuff_simulation
+    expected_mags = np.append(stars.mag, galaxies.mag)
 
-    expected_mags = expected_mags[fluxes > 0]
-    fluxes = fluxes[fluxes > 0]
+    det_closest = stuff.get_closest(
+        single_frame_catalog, kdtree
+    )
+    ref_closest = stuff.get_closest(
+        reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
+    )
 
-    mags = flux2mag(fluxes)
-
-    diff = mags - expected_mags
-    diff = diff[np.isnan(diff) == False]
-    assert np.sum(diff ** 2) <= sum_squared_errors
+    det_mag = _get_column(single_frame_catalog[det_closest['catalog']], mag_column[0])
+    ref_mag = _get_column(reference[ref_closest['catalog']], reference_mag_column[0])
+    det_mag_diff = expected_mags[det_closest['source']] - det_mag
+    ref_mag_diff = expected_mags[ref_closest['source']] - ref_mag
+    assert np.mean(np.abs(det_mag_diff)) <= np.mean(np.abs(ref_mag_diff)) * tolerances['magnitude']

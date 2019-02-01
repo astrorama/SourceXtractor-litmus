@@ -1,4 +1,4 @@
 *.log
 *.pyc
 __pycache__
-check_*.fits
+check_*.fits*
