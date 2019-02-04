@@ -81,6 +81,8 @@ def generate_report(output, simulation, image, target, reference,
             )
 
             ax1.set_ylabel('Measured magnitude')
+            ax1.grid(True, linestyle=':')
+            ax1.set_xticklabels([])
             ax1.legend()
 
             ax2 = plt.subplot2grid((3, 1), (2, 0), 1)
@@ -94,6 +96,7 @@ def generate_report(output, simulation, image, target, reference,
             )
             ax2.set_ylabel('$\Delta$')
             ax2.set_xlabel('Real magnitude')
+            ax2.grid(True, linestyle=':')
 
             pdf.savefig()
 
