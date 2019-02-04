@@ -123,12 +123,12 @@ def generate_report(output, simulation, image, target, reference,
                 ax1.set_title(f'{ref_colname} vs {target_colname}')
 
                 ax1.scatter(
-                    expected_mags[target_closest['source']], ref_val,
+                    expected_mags[ref_closest['source']], ref_val,
                     marker='o', label='Reference'
                 )
 
                 ax1.scatter(
-                    expected_mags[ref_closest['source']], target_val,
+                    expected_mags[target_closest['source']], target_val,
                     marker='.', label='Output'
                 )
 
@@ -141,11 +141,11 @@ def generate_report(output, simulation, image, target, reference,
                     ax2 = plt.subplot2grid((4, 1), (2, 0), 1, sharey=ax_y_diff)
                     ax_y_diff = ax2
                     ax2.scatter(
-                        expected_mags[target_closest['source']], expected_mags[target_closest['source']] - ref_val,
+                        expected_mags[ref_closest['source']], expected_mags[ref_closest['source']] - ref_val,
                         marker='o'
                     )
                     ax2.scatter(
-                        expected_mags[ref_closest['source']], expected_mags[ref_closest['source']] - target_val,
+                        expected_mags[target_closest['source']], expected_mags[target_closest['source']] - target_val,
                         marker='.'
                     )
                     ax2.set_ylabel('$\Delta$')
@@ -162,7 +162,7 @@ def generate_report(output, simulation, image, target, reference,
                     marker='o'
                 )
                 ax3.scatter(
-                    expected_mags[ref_closest['source']], target_err,
+                    expected_mags[target_closest['source']], target_err,
                     marker='.'
                 )
                 ax3.set_ylabel('Catalog error')
