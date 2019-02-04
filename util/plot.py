@@ -96,6 +96,7 @@ def generate_report(output, simulation, image, target, reference,
         )
         plt.legend()
         pdf.savefig()
+        plt.close()
 
         # Columns
         for ref_set, target_set in zip(reference_columns, target_columns):
@@ -170,6 +171,7 @@ def generate_report(output, simulation, image, target, reference,
 
             for fig in figures:
                 pdf.savefig(fig)
+                plt.close(fig)
 
         # Flags
         for flag_col in target_flag_columns:
@@ -204,3 +206,4 @@ def generate_report(output, simulation, image, target, reference,
             plt.legend()
 
             pdf.savefig()
+            plt.close()
