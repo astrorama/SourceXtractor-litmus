@@ -7,18 +7,36 @@ from matplotlib.backends.backend_pdf import PdfPages
 from . import stuff, get_column
 
 _default_target_columns = [
-    ('isophotal_mag', 'isophotal_mag_err'),
-    ('auto_mag', 'auto_mag_err'),
-    ('aperture_mag:0:0', 'aperture_mag_err:0:0'),
-    ('aperture_mag:0:1', 'aperture_mag_err:0:1'),
-    ('aperture_mag:0:2', 'aperture_mag_err:0:2')
+    [
+        ('isophotal_flux', 'isophotal_flux_err'),
+        ('auto_flux', 'auto_flux_err'),
+        ('aperture_flux:0:0', 'aperture_flux_err:0:0'),
+        ('aperture_flux:0:1', 'aperture_flux_err:0:1'),
+        ('aperture_flux:0:2', 'aperture_flux_err:0:2'),
+    ],
+    [
+        ('isophotal_mag', 'isophotal_mag_err'),
+        ('auto_mag', 'auto_mag_err'),
+        ('aperture_mag:0:0', 'aperture_mag_err:0:0'),
+        ('aperture_mag:0:1', 'aperture_mag_err:0:1'),
+        ('aperture_mag:0:2', 'aperture_mag_err:0:2')
+    ]
 ]
 _default_reference_columns = [
-    ('MAG_ISO', 'MAGERR_ISO'),
-    ('MAG_AUTO', 'MAGERR_AUTO'),
-    ('MAG_APER:0', 'MAGERR_APER:0'),
-    ('MAG_APER:1', 'MAGERR_APER:1'),
-    ('MAG_APER:2', 'MAGERR_APER:2')
+    [
+        ('FLUX_ISO', 'FLUXERR_ISO'),
+        ('FLUX_AUTO', 'FLUXERR_AUTO'),
+        ('FLUX_APER:0', 'FLUXERR_APER:0'),
+        ('FLUX_APER:1', 'FLUXERR_APER:1'),
+        ('FLUX_APER:2', 'FLUXERR_APER:2'),
+    ],
+    [
+        ('MAG_ISO', 'MAGERR_ISO'),
+        ('MAG_AUTO', 'MAGERR_AUTO'),
+        ('MAG_APER:0', 'MAGERR_APER:0'),
+        ('MAG_APER:1', 'MAGERR_APER:1'),
+        ('MAG_APER:2', 'MAGERR_APER:2')
+    ]
 ]
 _default_target_flag_columns = [
     'source_flags', 'auto_flags', 'aperture_flags:0:0', 'aperture_flags:0:1', 'aperture_flags:0:2'
@@ -79,61 +97,76 @@ def generate_report(output, simulation, image, target, reference,
         plt.legend()
         pdf.savefig()
 
-        # Magnitudes
-        for (ref_col, ref_err_col), (target_col, target_err_col) in zip(reference_columns, target_columns):
-            ref_mag = get_column(reference, ref_col)
-            ref_mag_err = get_column(reference, ref_err_col)
-            det_mag = get_column(target, target_col)
-            det_mag_err = get_column(target, target_err_col)
+        # Columns
+        for ref_set, target_set in zip(reference_columns, target_columns):
+            ax_y = None
+            ax_y_diff = None
+            ax_y_err = None
+            figures = []
+            for (ref_colname, ref_err_colname), (target_colname, target_err_colname) in zip(ref_set, target_set):
+                is_magnitude = 'mag' in target_colname
 
-            plt.figure(figsize=_page_size)
-            plt.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
+                ref_val = get_column(reference, ref_colname)
+                ref_err = get_column(reference, ref_err_colname)
+                target_val = get_column(target, target_colname)
+                target_err = get_column(target, target_err_colname)
 
-            ax1 = plt.subplot2grid((4, 1), (0, 0), 2)
-            ax1.set_title(f'{ref_col} vs {target_col}')
+                figures.append(plt.figure(figsize=_page_size))
+                plt.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
 
-            ax1.scatter(
-                expected_mags[target_closest['source']], ref_mag,
-                marker='o', label='Reference'
-            )
+                ax1 = plt.subplot2grid((4, 1), (0, 0), 2, sharey=ax_y)
+                ax_y = ax1
+                ax1.set_title(f'{ref_colname} vs {target_colname}')
 
-            ax1.scatter(
-                expected_mags[ref_closest['source']], det_mag,
-                marker='.', label='Output'
-            )
+                ax1.scatter(
+                    expected_mags[target_closest['source']], ref_val,
+                    marker='o', label='Reference'
+                )
 
-            ax1.set_ylabel('Measured magnitude')
-            ax1.grid(True, linestyle=':')
-            ax1.set_xticklabels([])
-            ax1.legend()
+                ax1.scatter(
+                    expected_mags[ref_closest['source']], target_val,
+                    marker='.', label='Output'
+                )
 
-            ax2 = plt.subplot2grid((4, 1), (2, 0), 1)
-            ax2.scatter(
-                expected_mags[target_closest['source']], expected_mags[target_closest['source']] - ref_mag,
-                marker='o'
-            )
-            ax2.scatter(
-                expected_mags[ref_closest['source']], expected_mags[ref_closest['source']] - det_mag,
-                marker='.'
-            )
-            ax2.set_ylabel('$\Delta$')
-            ax2.set_xticklabels([])
-            ax2.grid(True, linestyle=':')
+                ax1.set_ylabel('Measured magnitude')
+                ax1.grid(True, linestyle=':')
+                ax1.set_xticklabels([])
+                ax1.legend()
 
-            ax3 = plt.subplot2grid((4, 1), (3, 0), 1)
-            ax3.scatter(
-                expected_mags[ref_closest['source']], ref_mag_err,
-                marker='o'
-            )
-            ax3.scatter(
-                expected_mags[ref_closest['source']], det_mag_err,
-                marker='.'
-            )
-            ax3.set_ylabel('Measured error')
-            ax3.set_xlabel('Real magnitude')
-            ax3.grid(True, linestyle=':')
+                if is_magnitude:
+                    ax2 = plt.subplot2grid((4, 1), (2, 0), 1, sharey=ax_y_diff)
+                    ax_y_diff = ax2
+                    ax2.scatter(
+                        expected_mags[target_closest['source']], expected_mags[target_closest['source']] - ref_val,
+                        marker='o'
+                    )
+                    ax2.scatter(
+                        expected_mags[ref_closest['source']], expected_mags[ref_closest['source']] - target_val,
+                        marker='.'
+                    )
+                    ax2.set_ylabel('$\Delta$')
+                    ax2.set_xticklabels([])
+                    ax2.grid(True, linestyle=':')
 
-            pdf.savefig()
+                    ax3 = plt.subplot2grid((4, 1), (3, 0), 1, sharey=ax_y_err)
+                else:
+                    ax3 = plt.subplot2grid((4, 1), (2, 0), 2, sharey=ax_y_err)
+                ax3.set_facecolor('oldlace')
+                ax_y_err = ax3
+                ax3.scatter(
+                    expected_mags[ref_closest['source']], ref_err,
+                    marker='o'
+                )
+                ax3.scatter(
+                    expected_mags[ref_closest['source']], target_err,
+                    marker='.'
+                )
+                ax3.set_ylabel('Catalog error')
+                ax3.set_xlabel('Real magnitude')
+                ax3.grid(True, linestyle=':')
+
+            for fig in figures:
+                pdf.savefig(fig)
 
         # Flags
         for flag_col in target_flag_columns:
