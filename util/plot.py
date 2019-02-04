@@ -106,10 +106,13 @@ def generate_report(output, simulation, image, target, reference,
             for (ref_colname, ref_err_colname), (target_colname, target_err_colname) in zip(ref_set, target_set):
                 is_magnitude = 'mag' in target_colname
 
-                ref_val = get_column(reference, ref_colname)
-                ref_err = get_column(reference, ref_err_colname)
-                target_val = get_column(target, target_colname)
-                target_err = get_column(target, target_err_colname)
+                try:
+                    ref_val = get_column(reference, ref_colname)
+                    ref_err = get_column(reference, ref_err_colname)
+                    target_val = get_column(target, target_colname)
+                    target_err = get_column(target, target_err_colname)
+                except ValueError:
+                    continue
 
                 figures.append(plt.figure(figsize=_page_size))
                 plt.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
@@ -170,7 +173,10 @@ def generate_report(output, simulation, image, target, reference,
 
         # Flags
         for flag_col in target_flag_columns:
-            target_flags = get_column(target, flag_col)
+            try:
+                target_flags = get_column(target, flag_col)
+            except ValueError:
+                continue
             plt.figure(figsize=_page_size)
             plt.subplot(1, 2, 1)
 

@@ -12,7 +12,7 @@ import os
 import numpy as np
 import pytest
 
-from util import stuff, plot
+from util import stuff, plot, get_column
 from astropy.table import Table
 
 
@@ -66,6 +66,24 @@ def test_location(single_frame_catalog, reference, stuff_simulation):
 
 
 @pytest.mark.parametrize(
+    ['flux_column', 'reference_flux_column'], [
+        [['isophotal_flux', 'isophotal_flux_err'], ['FLUX_ISO', 'FLUXERR_ISO']],
+        [['auto_flux', 'auto_flux_err'], ['FLUX_AUTO', 'FLUXERR_AUTO']]
+    ]
+)
+def test_fluxes(single_frame_catalog, reference, flux_column, reference_flux_column, tolerances):
+    """
+    Cross-validate flux columns. The measured fluxes and errors should be close to the reference.
+    """
+    det_flux = get_column(single_frame_catalog, flux_column[0])
+    ref_flux = get_column(reference, reference_flux_column[0])
+    det_err = get_column(single_frame_catalog, flux_column[1])
+    ref_err = get_column(reference, reference_flux_column[1])
+    assert np.isclose(det_flux, ref_flux, rtol=tolerances['flux']).all()
+    assert np.isclose(det_err, ref_err, rtol=tolerances['flux_error']).all()
+
+
+@pytest.mark.parametrize(
     ['mag_column', 'reference_mag_column'], [
         [['isophotal_mag', 'isophotal_mag_err'], ['MAG_ISO', 'MAGERR_ISO']],
         [['auto_mag', 'auto_mag_err'], ['MAG_AUTO', 'MAGERR_AUTO']],
@@ -73,7 +91,7 @@ def test_location(single_frame_catalog, reference, stuff_simulation):
 )
 def test_magnitude(single_frame_catalog, reference, mag_column, reference_mag_column, stuff_simulation, tolerances):
     """
-    Cross-validate flux columns. The measured magnitudes should be at least as close
+    Cross-validate the magnitude columns. The measured magnitudes should be at least as close
     to the truth as the reference catalog (within a tolerance).
     """
     stars, galaxies, kdtree = stuff_simulation
@@ -86,8 +104,18 @@ def test_magnitude(single_frame_catalog, reference, mag_column, reference_mag_co
         reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
     )
 
-    det_mag = single_frame_catalog[det_closest['catalog']][mag_column[0]]
-    ref_mag = reference[ref_closest['catalog']][reference_mag_column[0]]
+    det_mag = get_column(single_frame_catalog[det_closest['catalog']], mag_column[0])
+    ref_mag = get_column(reference[ref_closest['catalog']], reference_mag_column[0])
     det_mag_diff = expected_mags[det_closest['source']] - det_mag
     ref_mag_diff = expected_mags[ref_closest['source']] - ref_mag
-    assert np.mean(np.abs(det_mag_diff)) <= np.mean(np.abs(ref_mag_diff)) * tolerances['magnitude']
+    assert np.mean(np.abs(det_mag_diff)) <= np.mean(np.abs(ref_mag_diff)) * (1 + tolerances['magnitude'])
+
+
+def test_generate_report(single_frame_catalog, reference, stuff_simulation, datafiles, module_output_area):
+    """
+    Not quite a test. Generate a PDF report to allow for better insights.
+    """
+    plot.generate_report(
+        module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'sim09_r_01.fits',
+        single_frame_catalog, reference
+    )
