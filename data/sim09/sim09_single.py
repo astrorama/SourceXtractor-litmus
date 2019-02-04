@@ -9,7 +9,7 @@ measurement_img = load_fits_image(
 
 add_output_column(
     'aperture',
-    add_aperture_photometry(measurement_img, [5, 20, 100])
+    add_aperture_photometry(measurement_img, [5, 10, 20])
 )
 
 print_output_columns()
