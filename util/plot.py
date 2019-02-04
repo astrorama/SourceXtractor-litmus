@@ -1,3 +1,5 @@
+from itertools import cycle
+
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
@@ -193,19 +195,21 @@ def generate_report(output, simulation, image, target, reference,
                 continue
             plt.figure(figsize=_page_size)
             plt.subplot(1, 2, 1)
+            markers = cycle(['1', '2', '3', '4'])
 
             plt.title('Flags for the reference')
             plt.imshow(img, cmap=_img_cmap, norm=_img_norm)
-            for flag in stuff.SourceFlags:
+            for flag in stuff.Sex2SourceFlags:
                 flag_filter = (reference['FLAGS'] & int(flag)).astype(np.bool)
                 if flag_filter.any():
                     plt.scatter(
                         reference[flag_filter]['X_IMAGE'], reference[flag_filter]['Y_IMAGE'],
-                        label=flag, alpha=0.5
+                        label=flag, marker=next(markers)
                     )
             plt.legend()
 
             plt.subplot(1, 2, 2)
+            markers = cycle(['1', '2', '3', '4'])
             plt.title(f'Output {flag_col}')
             plt.imshow(img, cmap=_img_cmap, norm=_img_norm)
             for flag in stuff.SourceFlags:
@@ -213,7 +217,7 @@ def generate_report(output, simulation, image, target, reference,
                 if flag_filter.any():
                     plt.scatter(
                         target[flag_filter]['pixel_centroid_x'], target[flag_filter]['pixel_centroid_y'],
-                        label=flag, alpha=0.5
+                        label=flag, marker=next(markers)
                     )
             plt.legend()
 

@@ -10,17 +10,43 @@ from scipy.spatial import KDTree
 
 logger = logging.getLogger(__name__)
 
+
 class SourceFlags(IntFlag):
     """
     SExtractor++ flags
     """
-    NONE      = 0 # No flag is set
-    BIASED    = 1 << 0 # The object has bad pixels
-    BLENDED   = 1 << 1 # The object was originally blended with another one.
-    SATURATED = 1 << 2 # At least one pixel of the object is saturated.
-    BOUNDARY  = 1 << 3 # The object is truncates (to close to an image boundary).
-    NEIGHBORS = 1 << 4 # The object has neighbors, bright and close enough
-    OUTSIDE   = 1 << 5 # The object is completely outside of the measurement frame
+    NONE = 0  # No flag is set
+    BIASED = 1 << 0  # The object has bad pixels
+    BLENDED = 1 << 1  # The object was originally blended with another one.
+    SATURATED = 1 << 2  # At least one pixel of the object is saturated.
+    BOUNDARY = 1 << 3  # The object is truncates (to close to an image boundary).
+    NEIGHBORS = 1 << 4  # The object has neighbors, bright and close enough
+    OUTSIDE = 1 << 5  # The object is completely outside of the measurement frame
+
+
+class Sex2SourceFlags(IntFlag):
+    """
+    SExtractor 2 flags
+    """
+    NONE = 0  # No flag is set
+    # 1) The object has neighbors, bright and close enough to
+    #    significantly bias the photometry, or bad pixels
+    #    (more than 10% of the integrated area affected).
+    BIASED = 1 << 0
+    # 2) The object was originally blended with another one.
+    BLENDED = 1 << 1
+    # 4) At least one pixel of the object is saturated (or very close to).
+    SATURATED = 1 << 2
+    # 8) The object is truncates (to close to an image boundary).
+    BOUNDARY = 1 << 3
+    # 16) Object's aperture data are incomplete or corrupted.
+    APERTURE_INCOMPLETE = 1 << 4
+    # 32) Object's isophotal data are incomplete or corrupted.
+    ISOPHOTAL_INCOMPLETE = 1 << 5
+    # 64) A memory overflow occurred during deblending.
+    DEBLENDING_OVERFLOW = 1 << 6
+    # 128) A memory overflow occurred during extraction.
+    EXTRACTION_OVERFLOW = 1 << 7
 
 
 def parse_stuff_list(path):
