@@ -194,5 +194,7 @@ def tolerances(test_configuration):
     Allow to configure the tolerances for the checks
     """
     return {
-        'magnitude': float(test_configuration.get('tolerances', 'magnitude'))
+        'magnitude': float(test_configuration.get('tolerances', 'magnitude')),
+        'flux': float(test_configuration.get('tolerances', 'flux')),
+        'flux_error': float(test_configuration.get('tolerances', 'flux_error'))
     }

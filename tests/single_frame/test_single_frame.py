@@ -10,9 +10,9 @@ import os
 
 import numpy as np
 import pytest
-
-from util import stuff
 from astropy.table import Table
+
+from util import stuff, get_column, plot
 
 
 @pytest.fixture
@@ -64,16 +64,25 @@ def test_location(single_frame_catalog, reference, stuff_simulation):
     assert np.mean(det_closest['dist']) <= np.mean(ref_closest['dist'])
 
 
-def _get_column(catalog, col):
+@pytest.mark.parametrize(
+    ['flux_column', 'reference_flux_column'], [
+        [['isophotal_flux', 'isophotal_flux_err'], ['FLUX_ISO', 'FLUXERR_ISO']],
+        [['auto_flux', 'auto_flux_err'], ['FLUX_AUTO', 'FLUXERR_AUTO']],
+        [['aperture_flux:0:0', 'aperture_flux_err:0:0'], ['FLUX_APER:0', 'FLUXERR_APER:0']],
+        [['aperture_flux:0:1', 'aperture_flux_err:0:1'], ['FLUX_APER:1', 'FLUXERR_APER:1']],
+        [['aperture_flux:0:2', 'aperture_flux_err:0:2'], ['FLUX_APER:2', 'FLUXERR_APER:2']],
+    ]
+)
+def test_fluxes(single_frame_catalog, reference, flux_column, reference_flux_column, tolerances):
     """
-    Convenience function to allow accessing multidimensional cells
+    Cross-validate flux columns. The measured fluxes and errors should be close to the reference.
     """
-    if ':' in col:
-        name, idxs_str = col.split(':', 1)
-        idxs = [slice(None)] + [int(idx) for idx in idxs_str.split(':')]
-        return catalog[name][tuple(idxs)]
-    else:
-        return catalog[col]
+    det_flux = get_column(single_frame_catalog, flux_column[0])
+    ref_flux = get_column(reference, reference_flux_column[0])
+    det_err = get_column(single_frame_catalog, flux_column[1])
+    ref_err = get_column(reference, reference_flux_column[1])
+    assert np.isclose(det_flux, ref_flux, rtol=tolerances['flux']).all()
+    assert np.isclose(det_err, ref_err, rtol=tolerances['flux_error']).all()
 
 
 @pytest.mark.parametrize(
@@ -87,7 +96,7 @@ def _get_column(catalog, col):
 )
 def test_magnitude(single_frame_catalog, reference, mag_column, reference_mag_column, stuff_simulation, tolerances):
     """
-    Cross-validate flux columns. The measured magnitudes should be at least as close
+    Cross-validate the magnitude columns. The measured magnitudes should be at least as close
     to the truth as the reference catalog (within a tolerance).
     """
     stars, galaxies, kdtree = stuff_simulation
@@ -100,8 +109,18 @@ def test_magnitude(single_frame_catalog, reference, mag_column, reference_mag_co
         reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
     )
 
-    det_mag = _get_column(single_frame_catalog[det_closest['catalog']], mag_column[0])
-    ref_mag = _get_column(reference[ref_closest['catalog']], reference_mag_column[0])
+    det_mag = get_column(single_frame_catalog[det_closest['catalog']], mag_column[0])
+    ref_mag = get_column(reference[ref_closest['catalog']], reference_mag_column[0])
     det_mag_diff = expected_mags[det_closest['source']] - det_mag
     ref_mag_diff = expected_mags[ref_closest['source']] - ref_mag
-    assert np.mean(np.abs(det_mag_diff)) <= np.mean(np.abs(ref_mag_diff)) * tolerances['magnitude']
+    assert np.mean(np.abs(det_mag_diff)) <= np.mean(np.abs(ref_mag_diff)) * (1 + tolerances['magnitude'])
+
+
+def test_generate_report(single_frame_catalog, reference, stuff_simulation, datafiles, module_output_area):
+    """
+    Not quite a test. Generate a PDF report to allow for better insights.
+    """
+    plot.generate_report(
+        module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'sim09_r_01.fits',
+        single_frame_catalog, reference
+    )

@@ -12,7 +12,7 @@ import os
 import numpy as np
 import pytest
 
-from util import stuff
+from util import stuff, plot
 from astropy.table import Table
 
 
@@ -91,3 +91,15 @@ def test_magnitude(single_frame_catalog, reference, mag_column, reference_mag_co
     det_mag_diff = expected_mags[det_closest['source']] - det_mag
     ref_mag_diff = expected_mags[ref_closest['source']] - ref_mag
     assert np.mean(np.abs(det_mag_diff)) <= np.mean(np.abs(ref_mag_diff)) * tolerances['magnitude']
+
+
+def test_generate_report(single_frame_catalog, reference, stuff_simulation, datafiles, module_output_area):
+    """
+    Not quite a test. Generate a PDF report to allow for better insights.
+    """
+    plot.generate_report(
+        module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'sim09_r_01.fits',
+        single_frame_catalog, reference,
+        target_aper_columns=['isophotal_mag', 'auto_mag'],
+        reference_aper_columns = ['MAG_ISO', 'MAG_AUTO']
+    )
