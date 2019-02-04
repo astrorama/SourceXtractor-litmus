@@ -101,5 +101,6 @@ def test_generate_report(single_frame_catalog, reference, stuff_simulation, data
         module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'sim09_r_01.fits',
         single_frame_catalog, reference,
         target_aper_columns=['isophotal_mag', 'auto_mag'],
-        reference_aper_columns = ['MAG_ISO', 'MAG_AUTO']
+        reference_aper_columns = ['MAG_ISO', 'MAG_AUTO'],
+        target_flag_columns=['source_flags', 'auto_flags']
     )

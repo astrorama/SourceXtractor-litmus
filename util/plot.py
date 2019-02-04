@@ -8,10 +8,14 @@ from . import stuff, get_column
 
 _default_target_aper_columns = ['isophotal_mag', 'auto_mag', 'aperture_mag:0:0', 'aperture_mag:0:1', 'aperture_mag:0:2']
 _default_reference_aper_columns = ['MAG_ISO', 'MAG_AUTO', 'MAG_APER:0', 'MAG_APER:1', 'MAG_APER:2']
+_default_target_flag_columns = ['source_flags', 'auto_flags', 'aperture_flags:0:0', 'aperture_flags:0:1', 'aperture_flags:0:2']
+_page_size = (11.7, 8.3)
+_img_cmap = plt.get_cmap('Greys_r')
+_img_norm = colors.SymLogNorm(10)
 
 
 def generate_report(output, simulation, image, target, reference,
-                    target_aper_columns=None, reference_aper_columns=None):
+                    target_aper_columns=None, reference_aper_columns=None, target_flag_columns=None):
     """
     Generate a PDF comparing the target and the reference catalogs
     :param output:
@@ -29,6 +33,8 @@ def generate_report(output, simulation, image, target, reference,
         target_aper_columns = _default_target_aper_columns
     if reference_aper_columns is None:
         reference_aper_columns = _default_reference_aper_columns
+    if target_flag_columns is None:
+        target_flag_columns = _default_target_flag_columns
 
     stars, galaxies, kdtree = simulation
     expected_mags = np.append(stars.mag, galaxies.mag)
@@ -39,9 +45,9 @@ def generate_report(output, simulation, image, target, reference,
 
     with PdfPages(output) as pdf:
         # Location with the image on the background
-        plt.figure(figsize=(11.7, 8.3))
+        plt.figure(figsize=_page_size)
         plt.title('Location')
-        plt.imshow(img, cmap=plt.get_cmap('Greys_r'), norm=colors.SymLogNorm(100))
+        plt.imshow(img, cmap=_img_cmap, norm=_img_norm)
         plt.scatter(
             reference['X_IMAGE'], reference['Y_IMAGE'],
             marker='^', label='Reference', alpha=0.5
@@ -58,7 +64,7 @@ def generate_report(output, simulation, image, target, reference,
             ref_mag = get_column(reference, ref_col)
             det_mag = get_column(target, det_col)
 
-            plt.figure(figsize=(11.7, 8.3))
+            plt.figure(figsize=_page_size)
             plt.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
 
             ax1 = plt.subplot2grid((3, 1), (0, 0), 2)
@@ -88,5 +94,36 @@ def generate_report(output, simulation, image, target, reference,
             )
             ax2.set_ylabel('$\Delta$')
             ax2.set_xlabel('Real magnitude')
+
+            pdf.savefig()
+
+        # Flags
+        for flag_col in target_flag_columns:
+            target_flags = get_column(target, flag_col)
+            plt.figure(figsize=_page_size)
+            plt.subplot(1, 2, 1)
+
+            plt.title('Flags for the reference')
+            plt.imshow(img, cmap=_img_cmap, norm=_img_norm)
+            for flag in stuff.SourceFlags:
+                flag_filter = (reference['FLAGS'] & int(flag)).astype(np.bool)
+                if flag_filter.any():
+                    plt.scatter(
+                        reference[flag_filter]['X_IMAGE'], reference[flag_filter]['Y_IMAGE'],
+                        label=flag, alpha=0.5
+                    )
+            plt.legend()
+
+            plt.subplot(1, 2, 2)
+            plt.title(f'Output {flag_col}')
+            plt.imshow(img, cmap=_img_cmap, norm=_img_norm)
+            for flag in stuff.SourceFlags:
+                flag_filter = (target_flags & int(flag)).astype(np.bool)
+                if flag_filter.any():
+                    plt.scatter(
+                        target[flag_filter]['pixel_centroid_x'], target[flag_filter]['pixel_centroid_y'],
+                        label=flag, alpha=0.5
+                    )
+            plt.legend()
 
             pdf.savefig()
