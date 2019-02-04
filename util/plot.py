@@ -98,6 +98,18 @@ def generate_report(output, simulation, image, target, reference,
         pdf.savefig()
         plt.close()
 
+        # Distances
+        plt.figure(figsize=_page_size)
+        plt.subplot(2, 1, 1)
+        plt.title('Distances for the target catalog')
+        _, bins, _ = plt.hist(target_closest['dist'], bins=50)
+        plt.subplot(2, 1, 2)
+        plt.title('Distances for the reference catalog')
+        plt.hist(ref_closest['dist'], bins=bins)
+
+        pdf.savefig()
+        plt.close()
+
         # Columns
         for ref_set, target_set in zip(reference_columns, target_columns):
             ax_y = None
