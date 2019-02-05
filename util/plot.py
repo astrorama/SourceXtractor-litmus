@@ -160,16 +160,16 @@ def generate_report(output, simulation, image, target, reference,
                     ax2.set_facecolor('whitesmoke')
                     ax2.spines['top'].set_visible(False)
                     ax_y_diff = ax2
-                    ax2.scatter(
-                        expected_mags[ref_closest['source']], ref_val - expected_mags[ref_closest['source']],
-                        marker='o'
-                    )
-                    ax2.scatter(
-                        expected_mags[target_closest['source']], target_val - expected_mags[target_closest['source']],
-                        marker='.'
-                    )
+
+                    ref_diff = ref_val - expected_mags[ref_closest['source']]
+                    target_diff = target_val - expected_mags[target_closest['source']]
+
+                    ax2.scatter(expected_mags[ref_closest['source']], ref_diff, marker='o')
+                    ax2.scatter(expected_mags[ref_closest['source']], target_diff, marker='.')
                     ax2.set_ylabel('$\Delta$')
                     ax2.set_xticklabels([])
+                    ax2.axhline(0, color='gray')
+
                     ax2.grid(True, linestyle=':')
 
                     ax3 = plt.subplot2grid((4, 1), (3, 0), 1, sharey=ax_y_err)
