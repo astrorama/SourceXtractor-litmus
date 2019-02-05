@@ -3,6 +3,7 @@ from itertools import cycle
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
+from astropy.wcs import WCS
 from matplotlib import colors
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.gridspec import GridSpec
@@ -85,16 +86,18 @@ def generate_report(output, simulation, image, target, reference,
     target_closest = stuff.get_closest(target, kdtree)
     ref_closest = stuff.get_closest(reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY')
 
-    img = fits.open(image)[0].data
+    hdu = fits.open(image)[0]
+    img = hdu.data
+    wcs = WCS(hdu.header)
 
     with PdfPages(output) as pdf:
         # Location with the image on the background
-        fig = _plot_location(img, reference, target)
+        fig = _plot_location(img, wcs, reference, target)
         pdf.savefig(fig)
         plt.close(fig)
 
         # Distances
-        fig = _plot_distances(fig, ref_closest, target_closest)
+        fig = _plot_distances(ref_closest, target_closest)
         pdf.savefig(fig)
         plt.close(fig)
 
@@ -110,30 +113,40 @@ def generate_report(output, simulation, image, target, reference,
                 plt.close(fig)
 
         # Flags
-        figures = _plot_flags(img, reference, target, target_flag_columns)
+        figures = _plot_flags(img, wcs, reference, target, target_flag_columns)
         for fig in figures:
             pdf.savefig(fig)
             plt.close(fig)
 
 
-def _plot_location(img, reference, target):
+def _plot_location(img, wcs, reference, target):
+    """
+    Overlay over the image the reference and target sources.
+    Uses the world coordinates alpha and delta, transformed via WCS.
+    """
+    ref_pix = wcs.all_world2pix(reference['ALPHA_SKY'], reference['DELTA_SKY'], 0)
+    target_pix = wcs.all_world2pix(target['world_centroid_alpha'], target['world_centroid_delta'], 0)
+
     fig = plt.figure(figsize=_page_size)
-    ax = fig.subplots()
+    ax = fig.add_subplot(1, 1, 1, projection=wcs)
     ax.set_title('Location')
     ax.imshow(img, cmap=_img_cmap, norm=_img_norm)
     ax.scatter(
-        reference['X_IMAGE'], reference['Y_IMAGE'],
+        ref_pix[0], ref_pix[1],
         marker='o', label=_ref_label, alpha=0.5
     )
     ax.scatter(
-        target['pixel_centroid_x'], target['pixel_centroid_y'],
+        target_pix[0], target_pix[1],
         marker='.', label=_target_label, alpha=0.5
     )
     ax.legend()
     return fig
 
 
-def _plot_distances(fig, ref_closest, target_closest):
+def _plot_distances(ref_closest, target_closest):
+    """
+    Plots two histograms with the distances of the identified sources to their 'true' counterpart
+    """
     fig = plt.figure(figsize=_page_size)
     ax = fig.add_subplot(2, 1, 1)
     ax.set_title(f'Distances for {_target_label}')
@@ -145,6 +158,10 @@ def _plot_distances(fig, ref_closest, target_closest):
 
 
 def _plot_column_set(expected_mags, ref_set, target_set, ref_closest, target_closest, reference, target):
+    """
+    Plot a set of columns. They will share the Y axis, so they are expected to have the same
+    units and the same order of magnitude.
+    """
     figures = []
     shared_ax_y = None
     shared_ax_y_err = None
@@ -224,7 +241,14 @@ def _plot_column_set(expected_mags, ref_set, target_set, ref_closest, target_clo
     return figures
 
 
-def _plot_flags(img, reference, target, target_flag_columns):
+def _plot_flags(img, wcs, reference, target, target_flag_columns):
+    """
+    Overlay over the image the sources by their flags, both for the reference and the target.
+    Uses the world coordinates alpha and delta, transformed via WCS.
+    """
+    ref_pix = wcs.all_world2pix(reference['ALPHA_SKY'], reference['DELTA_SKY'], 0)
+    target_pix = wcs.all_world2pix(target['world_centroid_alpha'], target['world_centroid_delta'], 0)
+
     figures = []
     for flag_col in target_flag_columns:
         try:
@@ -234,7 +258,7 @@ def _plot_flags(img, reference, target, target_flag_columns):
 
         fig = plt.figure(figsize=_page_size)
         figures.append(fig)
-        ax = fig.add_subplot(1, 2, 1)
+        ax = fig.add_subplot(1, 2, 1, projection=wcs)
         markers = cycle(['1', '2', '3', '4'])
 
         ax.set_title(f'{_ref_label} FLAGS')
@@ -243,12 +267,12 @@ def _plot_flags(img, reference, target, target_flag_columns):
             flag_filter = (reference['FLAGS'] & int(flag)).astype(np.bool)
             if flag_filter.any():
                 ax.scatter(
-                    reference[flag_filter]['X_IMAGE'], reference[flag_filter]['Y_IMAGE'],
+                    ref_pix[0][flag_filter], ref_pix[1][flag_filter],
                     label=flag, marker=next(markers)
                 )
         ax.legend()
 
-        ax = fig.add_subplot(1, 2, 2)
+        ax = fig.add_subplot(1, 2, 2, projection=wcs)
         markers = cycle(['1', '2', '3', '4'])
         ax.set_title(f'{_target_label} {flag_col}')
         ax.imshow(img, cmap=_img_cmap, norm=_img_norm)
@@ -256,7 +280,7 @@ def _plot_flags(img, reference, target, target_flag_columns):
             flag_filter = (target_flags & int(flag)).astype(np.bool)
             if flag_filter.any():
                 ax.scatter(
-                    target[flag_filter]['pixel_centroid_x'], target[flag_filter]['pixel_centroid_y'],
+                    target_pix[0][flag_filter], target_pix[1][flag_filter],
                     label=flag, marker=next(markers)
                 )
         ax.legend()
