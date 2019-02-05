@@ -237,7 +237,6 @@ def _plot_column_set(expected_mags, ref_set, target_set, ref_closest, target_clo
         ax3.set_xlabel('Real magnitude')
         ax3.grid(True, linestyle=':')
 
-        figures.append(fig)
     return figures
 
 
@@ -258,6 +257,7 @@ def _plot_flags(img, wcs, reference, target, target_flag_columns):
 
         fig = plt.figure(figsize=_page_size)
         figures.append(fig)
+
         ax = fig.add_subplot(1, 2, 1, projection=wcs)
         markers = cycle(['1', '2', '3', '4'])
 
