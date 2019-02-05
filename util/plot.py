@@ -5,6 +5,7 @@ import numpy as np
 from astropy.io import fits
 from matplotlib import colors
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.gridspec import GridSpec
 
 from . import stuff, get_column
 
@@ -88,144 +89,175 @@ def generate_report(output, simulation, image, target, reference,
 
     with PdfPages(output) as pdf:
         # Location with the image on the background
-        plt.figure(figsize=_page_size)
-        plt.title('Location')
-        plt.imshow(img, cmap=_img_cmap, norm=_img_norm)
-        plt.scatter(
-            reference['X_IMAGE'], reference['Y_IMAGE'],
-            marker='o', label=_ref_label, alpha=0.5
-        )
-        plt.scatter(
-            target['pixel_centroid_x'], target['pixel_centroid_y'],
-            marker='.', label=_target_label, alpha=0.5
-        )
-        plt.legend()
-        pdf.savefig()
-        plt.close()
+        fig = _plot_location(img, reference, target)
+        pdf.savefig(fig)
+        plt.close(fig)
 
         # Distances
-        plt.figure(figsize=_page_size)
-        plt.subplot(2, 1, 1)
-        plt.title(f'Distances for {_target_label}')
-        _, bins, _ = plt.hist(target_closest['dist'], bins=50)
-        plt.subplot(2, 1, 2)
-        plt.title(f'Distances for {_ref_label}')
-        plt.hist(ref_closest['dist'], bins=bins)
+        fig = _plot_distances(fig, ref_closest, target_closest)
+        pdf.savefig(fig)
+        plt.close(fig)
 
-        pdf.savefig()
-        plt.close()
-
-        # Columns
+        # Column sets
+        # Columns within a single set share the Y axis, so they are easier to compare
         for ref_set, target_set in zip(reference_columns, target_columns):
-            ax_y = None
-            ax_y_diff = None
-            ax_y_err = None
-            figures = []
-            for (ref_colname, ref_err_colname), (target_colname, target_err_colname) in zip(ref_set, target_set):
-                is_magnitude = 'mag' in target_colname
-
-                try:
-                    ref_val = get_column(reference, ref_colname)
-                    ref_err = get_column(reference, ref_err_colname)
-                    target_val = get_column(target, target_colname)
-                    target_err = get_column(target, target_err_colname)
-                except ValueError:
-                    continue
-
-                figures.append(plt.figure(figsize=_page_size))
-                plt.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
-
-                ax1 = plt.subplot2grid((4, 1), (0, 0), 2, sharey=ax_y)
-                ax_y = ax1
-                ax1.set_title(f'{ref_colname} vs {target_colname}')
-
-                ax1.scatter(
-                    expected_mags[ref_closest['source']], ref_val,
-                    marker='o', label=_ref_label
-                )
-
-                ax1.scatter(
-                    expected_mags[target_closest['source']], target_val,
-                    marker='.', label=_target_label
-                )
-
-                ax1.set_ylabel('Measured magnitude')
-                ax1.grid(True, linestyle=':')
-                ax1.set_xticklabels([])
-                ax1.legend()
-
-                if is_magnitude:
-                    ax1.spines['bottom'].set_linestyle('--')
-                    ax2 = plt.subplot2grid((4, 1), (2, 0), 1, sharey=ax_y_diff)
-                    ax2.set_facecolor('whitesmoke')
-                    ax2.spines['top'].set_visible(False)
-                    ax_y_diff = ax2
-
-                    ref_diff = ref_val - expected_mags[ref_closest['source']]
-                    target_diff = target_val - expected_mags[target_closest['source']]
-
-                    ax2.scatter(expected_mags[ref_closest['source']], ref_diff, marker='o')
-                    ax2.scatter(expected_mags[ref_closest['source']], target_diff, marker='.')
-                    ax2.set_ylabel('$\Delta$')
-                    ax2.set_xticklabels([])
-                    ax2.axhline(0, color='gray')
-
-                    ax2.grid(True, linestyle=':')
-
-                    ax3 = plt.subplot2grid((4, 1), (3, 0), 1, sharey=ax_y_err)
-                else:
-                    ax3 = plt.subplot2grid((4, 1), (2, 0), 2, sharey=ax_y_err)
-                ax3.set_facecolor('oldlace')
-                ax_y_err = ax3
-                ax3.scatter(
-                    expected_mags[ref_closest['source']], ref_err,
-                    marker='o'
-                )
-                ax3.scatter(
-                    expected_mags[target_closest['source']], target_err,
-                    marker='.'
-                )
-                ax3.set_ylabel('Catalog error')
-                ax3.set_xlabel('Real magnitude')
-                ax3.grid(True, linestyle=':')
+            figures = _plot_column_set(
+                expected_mags, ref_set, target_set, ref_closest, target_closest, reference, target
+            )
 
             for fig in figures:
                 pdf.savefig(fig)
                 plt.close(fig)
 
         # Flags
-        for flag_col in target_flag_columns:
-            try:
-                target_flags = get_column(target, flag_col)
-            except ValueError:
-                continue
-            plt.figure(figsize=_page_size)
-            plt.subplot(1, 2, 1)
-            markers = cycle(['1', '2', '3', '4'])
+        figures = _plot_flags(img, reference, target, target_flag_columns)
+        for fig in figures:
+            pdf.savefig(fig)
+            plt.close(fig)
 
-            plt.title(f'{_ref_label} FLAGS')
-            plt.imshow(img, cmap=_img_cmap, norm=_img_norm)
-            for flag in stuff.Sex2SourceFlags:
-                flag_filter = (reference['FLAGS'] & int(flag)).astype(np.bool)
-                if flag_filter.any():
-                    plt.scatter(
-                        reference[flag_filter]['X_IMAGE'], reference[flag_filter]['Y_IMAGE'],
-                        label=flag, marker=next(markers)
-                    )
-            plt.legend()
 
-            plt.subplot(1, 2, 2)
-            markers = cycle(['1', '2', '3', '4'])
-            plt.title(f'{_target_label} {flag_col}')
-            plt.imshow(img, cmap=_img_cmap, norm=_img_norm)
-            for flag in stuff.SourceFlags:
-                flag_filter = (target_flags & int(flag)).astype(np.bool)
-                if flag_filter.any():
-                    plt.scatter(
-                        target[flag_filter]['pixel_centroid_x'], target[flag_filter]['pixel_centroid_y'],
-                        label=flag, marker=next(markers)
-                    )
-            plt.legend()
+def _plot_location(img, reference, target):
+    fig = plt.figure(figsize=_page_size)
+    ax = fig.subplots()
+    ax.set_title('Location')
+    ax.imshow(img, cmap=_img_cmap, norm=_img_norm)
+    ax.scatter(
+        reference['X_IMAGE'], reference['Y_IMAGE'],
+        marker='o', label=_ref_label, alpha=0.5
+    )
+    ax.scatter(
+        target['pixel_centroid_x'], target['pixel_centroid_y'],
+        marker='.', label=_target_label, alpha=0.5
+    )
+    ax.legend()
+    return fig
 
-            pdf.savefig()
-            plt.close()
+
+def _plot_distances(fig, ref_closest, target_closest):
+    fig = plt.figure(figsize=_page_size)
+    ax = fig.add_subplot(2, 1, 1)
+    ax.set_title(f'Distances for {_target_label}')
+    _, bins, _ = ax.hist(target_closest['dist'], bins=50)
+    ax = fig.add_subplot(2, 1, 2)
+    ax.set_title(f'Distances for {_ref_label}')
+    ax.hist(ref_closest['dist'], bins=bins)
+    return fig
+
+
+def _plot_column_set(expected_mags, ref_set, target_set, ref_closest, target_closest, reference, target):
+    figures = []
+    shared_ax_y = None
+    shared_ax_y_err = None
+    shared_ax_y_diff = None
+    for (ref_colname, ref_err_colname), (target_colname, target_err_colname) in zip(ref_set, target_set):
+        is_magnitude = 'mag' in target_colname
+
+        try:
+            ref_val = get_column(reference, ref_colname)
+            ref_err = get_column(reference, ref_err_colname)
+            target_val = get_column(target, target_colname)
+            target_err = get_column(target, target_err_colname)
+        except ValueError:
+            continue
+
+        fig = plt.figure(figsize=_page_size)
+        figures.append(fig)
+
+        fig.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
+
+        gridspec = GridSpec(4, 1)
+        ax1 = fig.add_subplot(gridspec.new_subplotspec((0, 0), 2), sharey=shared_ax_y)
+        shared_ax_y = ax1
+        ax1.set_title(f'{ref_colname} vs {target_colname}')
+
+        ax1.scatter(
+            expected_mags[ref_closest['source']], ref_val,
+            marker='o', label=_ref_label
+        )
+
+        ax1.scatter(
+            expected_mags[target_closest['source']], target_val,
+            marker='.', label=_target_label
+        )
+
+        ax1.set_ylabel('Measured magnitude')
+        ax1.grid(True, linestyle=':')
+        ax1.set_xticklabels([])
+        ax1.legend()
+
+        if is_magnitude:
+            ax1.spines['bottom'].set_linestyle('--')
+            ax2 = fig.add_subplot(gridspec.new_subplotspec((2, 0), 1), sharey=shared_ax_y_diff)
+            ax2.set_facecolor('whitesmoke')
+            ax2.spines['top'].set_visible(False)
+            shared_ax_y_diff = ax2
+
+            ref_diff = ref_val - expected_mags[ref_closest['source']]
+            target_diff = target_val - expected_mags[target_closest['source']]
+
+            ax2.scatter(expected_mags[ref_closest['source']], ref_diff, marker='o')
+            ax2.scatter(expected_mags[ref_closest['source']], target_diff, marker='.')
+            ax2.set_ylabel('$\Delta$')
+            ax2.set_xticklabels([])
+            ax2.axhline(0, color='gray')
+
+            ax2.grid(True, linestyle=':')
+
+            ax3 = fig.add_subplot(gridspec.new_subplotspec((3, 0), 1), sharey=shared_ax_y_err)
+        else:
+            ax3 = fig.add_subplot(gridspec.new_subplotspec((2, 0), 2), sharey=shared_ax_y_err)
+        ax3.set_facecolor('oldlace')
+        shared_ax_y_err = ax3
+        ax3.scatter(
+            expected_mags[ref_closest['source']], ref_err,
+            marker='o'
+        )
+        ax3.scatter(
+            expected_mags[target_closest['source']], target_err,
+            marker='.'
+        )
+        ax3.set_ylabel('Catalog error')
+        ax3.set_xlabel('Real magnitude')
+        ax3.grid(True, linestyle=':')
+
+        figures.append(fig)
+    return figures
+
+
+def _plot_flags(img, reference, target, target_flag_columns):
+    figures = []
+    for flag_col in target_flag_columns:
+        try:
+            target_flags = get_column(target, flag_col)
+        except ValueError:
+            continue
+
+        fig = plt.figure(figsize=_page_size)
+        figures.append(fig)
+        ax = fig.add_subplot(1, 2, 1)
+        markers = cycle(['1', '2', '3', '4'])
+
+        ax.set_title(f'{_ref_label} FLAGS')
+        ax.imshow(img, cmap=_img_cmap, norm=_img_norm)
+        for flag in stuff.Sex2SourceFlags:
+            flag_filter = (reference['FLAGS'] & int(flag)).astype(np.bool)
+            if flag_filter.any():
+                ax.scatter(
+                    reference[flag_filter]['X_IMAGE'], reference[flag_filter]['Y_IMAGE'],
+                    label=flag, marker=next(markers)
+                )
+        ax.legend()
+
+        ax = fig.add_subplot(1, 2, 2)
+        markers = cycle(['1', '2', '3', '4'])
+        ax.set_title(f'{_target_label} {flag_col}')
+        ax.imshow(img, cmap=_img_cmap, norm=_img_norm)
+        for flag in stuff.SourceFlags:
+            flag_filter = (target_flags & int(flag)).astype(np.bool)
+            if flag_filter.any():
+                ax.scatter(
+                    target[flag_filter]['pixel_centroid_x'], target[flag_filter]['pixel_centroid_y'],
+                    label=flag, marker=next(markers)
+                )
+        ax.legend()
+    return figures
