@@ -161,11 +161,11 @@ def generate_report(output, simulation, image, target, reference,
                     ax2.spines['top'].set_visible(False)
                     ax_y_diff = ax2
                     ax2.scatter(
-                        expected_mags[ref_closest['source']], expected_mags[ref_closest['source']] - ref_val,
+                        expected_mags[ref_closest['source']], ref_val - expected_mags[ref_closest['source']],
                         marker='o'
                     )
                     ax2.scatter(
-                        expected_mags[target_closest['source']], expected_mags[target_closest['source']] - target_val,
+                        expected_mags[target_closest['source']], target_val - expected_mags[target_closest['source']],
                         marker='.'
                     )
                     ax2.set_ylabel('$\Delta$')
