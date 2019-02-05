@@ -47,6 +47,9 @@ _page_size = (11.7, 8.3)
 _img_cmap = plt.get_cmap('Greys_r')
 _img_norm = colors.SymLogNorm(10)
 
+_ref_label = 'SExtractor 2'
+_target_label = 'SExtractor++'
+
 
 def generate_report(output, simulation, image, target, reference,
                     target_columns=None, reference_columns=None, target_flag_columns=None):
@@ -90,11 +93,11 @@ def generate_report(output, simulation, image, target, reference,
         plt.imshow(img, cmap=_img_cmap, norm=_img_norm)
         plt.scatter(
             reference['X_IMAGE'], reference['Y_IMAGE'],
-            marker='o', label='Reference', alpha=0.5
+            marker='o', label=_ref_label, alpha=0.5
         )
         plt.scatter(
             target['pixel_centroid_x'], target['pixel_centroid_y'],
-            marker='.', label='Output', alpha=0.5
+            marker='.', label=_target_label, alpha=0.5
         )
         plt.legend()
         pdf.savefig()
@@ -103,10 +106,10 @@ def generate_report(output, simulation, image, target, reference,
         # Distances
         plt.figure(figsize=_page_size)
         plt.subplot(2, 1, 1)
-        plt.title('Distances for the target catalog')
+        plt.title(f'Distances for {_target_label}')
         _, bins, _ = plt.hist(target_closest['dist'], bins=50)
         plt.subplot(2, 1, 2)
-        plt.title('Distances for the reference catalog')
+        plt.title(f'Distances for {_ref_label}')
         plt.hist(ref_closest['dist'], bins=bins)
 
         pdf.savefig()
@@ -138,12 +141,12 @@ def generate_report(output, simulation, image, target, reference,
 
                 ax1.scatter(
                     expected_mags[ref_closest['source']], ref_val,
-                    marker='o', label='Reference'
+                    marker='o', label=_ref_label
                 )
 
                 ax1.scatter(
                     expected_mags[target_closest['source']], target_val,
-                    marker='.', label='Output'
+                    marker='.', label=_target_label
                 )
 
                 ax1.set_ylabel('Measured magnitude')
@@ -152,7 +155,10 @@ def generate_report(output, simulation, image, target, reference,
                 ax1.legend()
 
                 if is_magnitude:
+                    ax1.spines['bottom'].set_linestyle('--')
                     ax2 = plt.subplot2grid((4, 1), (2, 0), 1, sharey=ax_y_diff)
+                    ax2.set_facecolor('whitesmoke')
+                    ax2.spines['top'].set_visible(False)
                     ax_y_diff = ax2
                     ax2.scatter(
                         expected_mags[ref_closest['source']], expected_mags[ref_closest['source']] - ref_val,
@@ -197,7 +203,7 @@ def generate_report(output, simulation, image, target, reference,
             plt.subplot(1, 2, 1)
             markers = cycle(['1', '2', '3', '4'])
 
-            plt.title('Flags for the reference')
+            plt.title(f'{_ref_label} FLAGS')
             plt.imshow(img, cmap=_img_cmap, norm=_img_norm)
             for flag in stuff.Sex2SourceFlags:
                 flag_filter = (reference['FLAGS'] & int(flag)).astype(np.bool)
@@ -210,7 +216,7 @@ def generate_report(output, simulation, image, target, reference,
 
             plt.subplot(1, 2, 2)
             markers = cycle(['1', '2', '3', '4'])
-            plt.title(f'Output {flag_col}')
+            plt.title(f'{_target_label} {flag_col}')
             plt.imshow(img, cmap=_img_cmap, norm=_img_norm)
             for flag in stuff.SourceFlags:
                 flag_filter = (target_flags & int(flag)).astype(np.bool)
