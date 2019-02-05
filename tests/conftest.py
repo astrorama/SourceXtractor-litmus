@@ -104,11 +104,13 @@ class SExtractorxx(object):
     can be passed via a configuration file.
     """
 
-    def __init__(self, exe, output_dir, defaults):
+    def __init__(self, exe, pythonpath, output_dir, defaults):
         self.__exe = exe
         self.__output_dir = output_dir
         self.__defaults = defaults
         self.__output_catalog = None
+        self.__env = os.environ.copy()
+        self.__env['PYTHONPATH'] = self.__env.get('PYTHONPATH', '') + ':' + pythonpath
 
     def get_output_directory(self):
         return self.__output_dir
@@ -147,7 +149,7 @@ class SExtractorxx(object):
             cmd_args.extend(['--config-file', cfg_file])
 
         self.__output_catalog = cfg_args.get('output_file', None)
-        result = self.__exe.run(*cmd_args, cwd=self.__output_dir)
+        result = self.__exe.run(*cmd_args, cwd=self.__output_dir, env=self.__env)
 
         if result.exit_code != 0 and self.__output_catalog and os.path.exists(self.__output_catalog):
             os.unlink(self.__output_catalog)
@@ -163,7 +165,11 @@ def sextractorxx(request, test_configuration, sextractorxx_defaults, module_outp
     exe = Executable(os.path.expandvars(test_configuration.get('sextractorxx', 'binary')))
 
     test_output_area = module_output_area / request.node.name
-    return SExtractorxx(exe, test_output_area, sextractorxx_defaults)
+    return SExtractorxx(
+        exe, os.path.expandvars(test_configuration.get('sextractorxx', 'pythonpath')),
+        test_output_area,
+        sextractorxx_defaults
+    )
 
 
 @pytest.fixture(scope='session')
