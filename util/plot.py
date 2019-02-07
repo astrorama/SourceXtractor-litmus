@@ -197,7 +197,7 @@ def _plot_column_set(expected_mags, ref_set, target_set, ref_closest, target_clo
             marker='.', label=_target_label
         )
 
-        ax1.set_ylabel('Measured magnitude')
+        ax1.set_ylabel('Measured value')
         ax1.grid(True, linestyle=':')
         ax1.set_xticklabels([])
         ax1.legend()
@@ -213,7 +213,7 @@ def _plot_column_set(expected_mags, ref_set, target_set, ref_closest, target_clo
             target_diff = target_val - expected_mags[target_closest['source']]
 
             ax2.scatter(expected_mags[ref_closest['source']], ref_diff, marker='o')
-            ax2.scatter(expected_mags[ref_closest['source']], target_diff, marker='.')
+            ax2.scatter(expected_mags[target_closest['source']], target_diff, marker='.')
             ax2.set_ylabel('$\Delta$')
             ax2.set_xticklabels([])
             ax2.axhline(0, color='gray')
@@ -233,7 +233,7 @@ def _plot_column_set(expected_mags, ref_set, target_set, ref_closest, target_clo
             expected_mags[target_closest['source']], target_err,
             marker='.'
         )
-        ax3.set_ylabel('Catalog error')
+        ax3.set_ylabel('Measured error')
         ax3.set_xlabel('Real magnitude')
         ax3.grid(True, linestyle=':')
 
