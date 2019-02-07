@@ -42,6 +42,9 @@ def test_saturated_override(sextractorxx, datafiles):
 
 
 def test_boundary(sextractorxx, datafiles):
+    """
+    Check if the boundary flag is set on two of the three sources
+    """
     saturated_fits = datafiles / 'simple' / 'boundary.fits'
     run = sextractorxx(
         detection_image=saturated_fits,
@@ -58,6 +61,9 @@ def test_boundary(sextractorxx, datafiles):
 
 
 def test_blended(sextractorxx, datafiles):
+    """
+    There are two de-blended sources
+    """
     neighbours_fits = datafiles / 'simple' / 'neighbours.fits'
     run = sextractorxx(
         detection_image=neighbours_fits,
