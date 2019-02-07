@@ -23,7 +23,8 @@ def coadded_catalog(sextractorxx, datafiles, module_output_area, signal_to_noise
             detection_image=datafiles / 'sim09' / 'sim09_r.fits',
             psf_file=datafiles / 'sim09' / 'sim09_r.psf',
             weight_image=datafiles / 'sim09' / 'sim09_r.weight.fits',
-            weight_type='weight'
+            weight_type='weight',
+            weight_absolute=True
         )
         assert run.exit_code == 0
 
@@ -40,7 +41,7 @@ def test_detection(coadded_catalog, coadded_reference):
     assert len(coadded_catalog) == len(coadded_reference)
 
 
-def test_location(coadded_catalog, coadded_reference, stuff_simulation):
+def test_location(coadded_catalog, coadded_reference, stuff_simulation, tolerances):
     """
     The detections should be at least as close as the reference to the truth.
     Single frame simulations are in pixel coordinates.
@@ -54,7 +55,7 @@ def test_location(coadded_catalog, coadded_reference, stuff_simulation):
         coadded_reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
     )
 
-    assert np.mean(det_closest['dist']) <= np.mean(ref_closest['dist'])
+    assert np.mean(det_closest['dist']) <= np.mean(ref_closest['dist']) * (1 + tolerances['distance'])
 
 
 @pytest.mark.parametrize(
@@ -67,12 +68,15 @@ def test_fluxes(coadded_catalog, coadded_reference, flux_column, reference_flux_
     """
     Cross-validate flux columns. The measured fluxes and errors should be close to the reference.
     """
-    det_flux = get_column(coadded_catalog, flux_column[0])
-    ref_flux = get_column(coadded_reference, reference_flux_column[0])
-    det_err = get_column(coadded_catalog, flux_column[1])
-    ref_err = get_column(coadded_reference, reference_flux_column[1])
-    assert np.isclose(det_flux, ref_flux, rtol=tolerances['flux']).all()
-    assert np.isclose(det_err, ref_err, rtol=tolerances['flux_error']).all()
+    target_flux = get_column(coadded_catalog, flux_column[0])
+    reference_flux = get_column(coadded_reference, reference_flux_column[0])
+    target_flux_err = get_column(coadded_catalog, flux_column[1])
+    reference_flux_err = get_column(coadded_reference, reference_flux_column[1])
+
+    relative_flux_diff = np.abs((target_flux - reference_flux) / target_flux)
+    relative_flux_err_diff = np.abs((target_flux_err - reference_flux_err) / target_flux_err)
+    assert np.nanmedian(relative_flux_diff) < tolerances['flux']
+    assert np.nanmedian(relative_flux_err_diff) < tolerances['flux']
 
 
 @pytest.mark.parametrize(
@@ -98,9 +102,10 @@ def test_magnitude(coadded_catalog, coadded_reference, mag_column, reference_mag
 
     det_mag = get_column(coadded_catalog[det_closest['catalog']], mag_column[0])
     ref_mag = get_column(coadded_reference[ref_closest['catalog']], reference_mag_column[0])
-    det_mag_diff = expected_mags[det_closest['source']] - det_mag
-    ref_mag_diff = expected_mags[ref_closest['source']] - ref_mag
-    assert np.mean(np.abs(det_mag_diff)) <= np.mean(np.abs(ref_mag_diff)) * (1 + tolerances['magnitude'])
+    relative_mag_diff = np.abs((expected_mags[det_closest['source']] - det_mag) / det_mag)
+    relative_ref_diff = np.abs((expected_mags[ref_closest['source']] - ref_mag) / ref_mag)
+
+    assert np.median(relative_mag_diff) <= np.median(relative_ref_diff) * (1 + tolerances['magnitude'])
 
 
 def test_generate_report(coadded_catalog, coadded_reference, stuff_simulation, datafiles, module_output_area):

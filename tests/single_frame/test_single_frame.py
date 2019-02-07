@@ -1,5 +1,5 @@
 #
-# This test is almost identical to test_single_frame_no_p[y but it *DOES*
+# This test is almost identical to test_single_frame_no_py but it *DOES*
 # use the measurement configuration file,.
 #
 # The reason for this two separate runs is that the pre-release emitted different
@@ -47,7 +47,7 @@ def test_detection(single_frame_catalog, reference):
     assert len(single_frame_catalog) == len(reference)
 
 
-def test_location(single_frame_catalog, reference, stuff_simulation):
+def test_location(single_frame_catalog, reference, stuff_simulation, tolerances):
     """
     The detections should be at least as close as the reference to the truth.
     Single frame simulations are in pixel coordinates.
@@ -61,7 +61,7 @@ def test_location(single_frame_catalog, reference, stuff_simulation):
         reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
     )
 
-    assert np.mean(det_closest['dist']) <= np.mean(ref_closest['dist'])
+    assert np.mean(det_closest['dist']) <= np.mean(ref_closest['dist']) * (1 + tolerances['distance'])
 
 
 @pytest.mark.parametrize(
@@ -77,12 +77,15 @@ def test_fluxes(single_frame_catalog, reference, flux_column, reference_flux_col
     """
     Cross-validate flux columns. The measured fluxes and errors should be close to the reference.
     """
-    det_flux = get_column(single_frame_catalog, flux_column[0])
-    ref_flux = get_column(reference, reference_flux_column[0])
-    det_err = get_column(single_frame_catalog, flux_column[1])
-    ref_err = get_column(reference, reference_flux_column[1])
-    assert np.isclose(det_flux, ref_flux, rtol=tolerances['flux']).all()
-    assert np.isclose(det_err, ref_err, rtol=tolerances['flux_error']).all()
+    target_flux = get_column(single_frame_catalog, flux_column[0])
+    reference_flux = get_column(reference, reference_flux_column[0])
+    target_flux_err = get_column(single_frame_catalog, flux_column[1])
+    reference_flux_err = get_column(reference, reference_flux_column[1])
+
+    relative_flux_diff = np.abs((target_flux - reference_flux) / target_flux)
+    relative_flux_err_diff = np.abs((target_flux_err - reference_flux_err) / target_flux_err)
+    assert np.nanmedian(relative_flux_diff) < tolerances['flux']
+    assert np.nanmedian(relative_flux_err_diff) < tolerances['flux']
 
 
 @pytest.mark.parametrize(
@@ -111,9 +114,10 @@ def test_magnitude(single_frame_catalog, reference, mag_column, reference_mag_co
 
     det_mag = get_column(single_frame_catalog[det_closest['catalog']], mag_column[0])
     ref_mag = get_column(reference[ref_closest['catalog']], reference_mag_column[0])
-    det_mag_diff = expected_mags[det_closest['source']] - det_mag
-    ref_mag_diff = expected_mags[ref_closest['source']] - ref_mag
-    assert np.mean(np.abs(det_mag_diff)) <= np.mean(np.abs(ref_mag_diff)) * (1 + tolerances['magnitude'])
+    relative_mag_diff = np.abs((expected_mags[det_closest['source']] - det_mag) / det_mag)
+    relative_ref_diff = np.abs((expected_mags[ref_closest['source']] - ref_mag) / ref_mag)
+
+    assert np.median(relative_mag_diff) <= np.median(relative_ref_diff) * (1 + tolerances['magnitude'])
 
 
 def test_generate_report(single_frame_catalog, reference, stuff_simulation, datafiles, module_output_area):
