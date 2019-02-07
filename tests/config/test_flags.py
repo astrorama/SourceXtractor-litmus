@@ -82,3 +82,36 @@ def test_malformed_detection_image(sextractorxx):
         detection_image=malformed.name
     )
     assert run.exit_code > 0
+
+
+def test_bad_segmentation_algorithm(sextractorxx):
+    """
+    Pass a bad segmentation algorithm
+    """
+    run = sextractorxx(
+        segmentation_algorithm='UNKNOWN'
+    )
+    assert run.exit_code > 0
+
+
+def test_bad_segmentation_filter(sextractorxx):
+    """
+    Pass a bad segmentation filter
+    """
+    malformed = tempfile.NamedTemporaryFile()
+    malformed.write(b'abcdef')
+    malformed.flush()
+    run = sextractorxx(
+        segmentation_filter=malformed.name
+    )
+    assert run.exit_code > 0
+
+
+def test_bad_grouping_algorithm(sextractorxx):
+    """
+    Pass an invalid grouping algorithm
+    """
+    run = sextractorxx(
+        grouping_algorihtm='UNKNOWN'
+    )
+    assert run.exit_code > 0
