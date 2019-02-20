@@ -1,3 +1,4 @@
+import logging
 from itertools import cycle
 
 import matplotlib.pyplot as plt
@@ -51,6 +52,25 @@ _img_norm = colors.SymLogNorm(10)
 
 _ref_label = 'SExtractor 2'
 _target_label = 'SExtractor++'
+
+_flag_style = {
+    stuff.SourceFlags.BIASED: ('red', '1'),
+    stuff.SourceFlags.BLENDED: ('blue', '2'),
+    stuff.SourceFlags.SATURATED: ('orange', '+'),
+    stuff.SourceFlags.BOUNDARY: ('pink', '3'),
+    stuff.SourceFlags.NEIGHBORS: ('cyan', '4'),
+    stuff.SourceFlags.OUTSIDE: ('white', 'x')
+}
+_sex2_flag_style = {
+    stuff.Sex2SourceFlags.BIASED: ('red', '1'),
+    stuff.Sex2SourceFlags.BLENDED: ('blue', '2'),
+    stuff.Sex2SourceFlags.SATURATED: ('orange', '+'),
+    stuff.Sex2SourceFlags.BOUNDARY: ('pink', '3'),
+    stuff.Sex2SourceFlags.APERTURE_INCOMPLETE: ('skyblue', '4'),
+    stuff.Sex2SourceFlags.ISOPHOTAL_INCOMPLETE: ('darkcyan', '1'),
+    stuff.Sex2SourceFlags.DEBLENDING_OVERFLOW: ('crimson', 'D'),
+    stuff.Sex2SourceFlags.EXTRACTION_OVERFLOW: ('crimson', 'X'),
+}
 
 
 def generate_report(output, simulation, image, target, reference,
@@ -259,29 +279,33 @@ def _plot_flags(img, wcs, reference, target, target_flag_columns):
         figures.append(fig)
 
         ax = fig.add_subplot(1, 2, 1, projection=wcs)
-        markers = cycle(['1', '2', '3', '4'])
 
         ax.set_title(f'{_ref_label} FLAGS')
         ax.imshow(img, cmap=_img_cmap, norm=_img_norm)
         for flag in stuff.Sex2SourceFlags:
+            if flag == stuff.Sex2SourceFlags.NONE:
+                continue
             flag_filter = (reference['FLAGS'] & int(flag)).astype(np.bool)
+            flag_color, flag_marker = _sex2_flag_style[flag]
             if flag_filter.any():
                 ax.scatter(
                     ref_pix[0][flag_filter], ref_pix[1][flag_filter],
-                    label=flag, marker=next(markers)
+                    label=flag, c=flag_color, marker=flag_marker
                 )
         ax.legend()
 
         ax = fig.add_subplot(1, 2, 2, projection=wcs)
-        markers = cycle(['1', '2', '3', '4'])
         ax.set_title(f'{_target_label} {flag_col}')
         ax.imshow(img, cmap=_img_cmap, norm=_img_norm)
         for flag in stuff.SourceFlags:
+            if flag == stuff.SourceFlags.NONE:
+                continue
             flag_filter = (target_flags & int(flag)).astype(np.bool)
+            flag_color, flag_marker = _flag_style[flag]
             if flag_filter.any():
                 ax.scatter(
                     target_pix[0][flag_filter], target_pix[1][flag_filter],
-                    label=flag, marker=next(markers)
+                    label=flag, c=flag_color, marker=flag_marker
                 )
         ax.legend()
     return figures
