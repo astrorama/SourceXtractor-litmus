@@ -1,3 +1,4 @@
+import itertools
 import os
 
 import numpy as np
@@ -31,6 +32,7 @@ def multi_frame_catalog(sextractorxx, datafiles, module_output_area, signal_to_n
     catalog = Table.read(output_catalog)
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= signal_to_noise_ratio
     catalog['auto_mag'][catalog['auto_mag'] >= 99.] = np.nan
+    catalog['aperture_mag'][catalog['aperture_mag'] >= 99.] = np.nan
     return np.sort(catalog[bright_filter], order=('world_centroid_alpha', 'world_centroid_delta'))
 
 
@@ -57,6 +59,74 @@ def test_location(multi_frame_catalog, reference, stuff_simulation, tolerances):
     )
 
     assert np.mean(det_closest['dist']) <= np.mean(ref_closest['dist']) * (1 + tolerances['distance'])
+
+
+def test_iso_magnitude(multi_frame_catalog, reference, stuff_simulation, tolerances):
+    """
+    Cross-validate the magnitude columns. The measured magnitudes should be at least as close
+    to the truth as the ref catalog (within a tolerance).
+    ISO is measured on the detection frame
+    """
+    stars, galaxies, kdtree = stuff_simulation
+    expected_mags = np.append(stars.mag, galaxies.mag)
+
+    target_closest = stuff.get_closest(multi_frame_catalog, kdtree)
+    ref_closest = stuff.get_closest(
+        reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
+    )
+
+    target_mag = multi_frame_catalog['isophotal_mag']
+    ref_mag = reference['MAG_ISO']
+
+    relative_target_diff = np.abs((expected_mags[target_closest['source']] - target_mag) / target_mag)
+    relative_ref_diff = np.abs((expected_mags[ref_closest['source']] - ref_mag) / ref_mag)
+
+    assert np.median(relative_target_diff) <= np.median(relative_ref_diff) * (1 + tolerances['magnitude'])
+
+
+@pytest.mark.parametrize(
+    'frame', range(10)
+)
+def test_auto_magnitude(frame, multi_frame_catalog, stuff_simulation, tolerances):
+    """
+    AUTO is measured on the measurement frames, so it is trickier. Need to run the test for each
+    frame, and filter out sources that are on the boundary or outside.
+    """
+    stars, galaxies, kdtree = stuff_simulation
+    expected_mags = np.append(stars.mag, galaxies.mag)
+
+    target_filter = (multi_frame_catalog['auto_flags'][:, frame] == 0)
+
+    target = multi_frame_catalog[target_filter]
+    target_closest = stuff.get_closest(target, kdtree)
+    target_mag = target['auto_mag'][:, frame]
+
+    assert np.isclose(
+        target_mag, expected_mags[target_closest['source']], rtol=tolerances['multiframe_magnitude']
+    ).all()
+
+
+@pytest.mark.parametrize(
+    ['frame', 'aper_idx'], itertools.product(range(10), [0, 1, 2])
+)
+def test_aper_magnitude(frame, aper_idx, multi_frame_catalog, stuff_simulation, tolerances):
+    """
+    APERTURE is measured on the measurement frames, so it is trickier. Need to run the test for each
+    frame, and filter out sources that are on the boundary or outside.
+    """
+    stars, galaxies, kdtree = stuff_simulation
+    expected_mags = np.append(stars.mag, galaxies.mag)
+
+    target_filter = (multi_frame_catalog['aperture_flags'][:, frame, aper_idx] == 0)
+
+    target = multi_frame_catalog[target_filter]
+    target_closest = stuff.get_closest(target, kdtree)
+    target_mag = target['aperture_mag'][:, frame, aper_idx]
+
+    assert np.isclose(
+        target_mag, expected_mags[target_closest['source']],
+        rtol=tolerances['multiframe_magnitude']
+    ).all()
 
 
 def test_generate_report(multi_frame_catalog, reference, stuff_simulation, datafiles, module_output_area):

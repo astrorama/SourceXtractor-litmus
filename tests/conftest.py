@@ -201,6 +201,7 @@ def tolerances(test_configuration):
     """
     return {
         'magnitude': float(test_configuration.get('tolerances', 'magnitude')),
+        'multiframe_magnitude': float(test_configuration.get('tolerances', 'multiframe_magnitude')),
         'flux': float(test_configuration.get('tolerances', 'flux')),
         'flux_error': float(test_configuration.get('tolerances', 'flux_error')),
         'distance': float(test_configuration.get('tolerances', 'distance'))
