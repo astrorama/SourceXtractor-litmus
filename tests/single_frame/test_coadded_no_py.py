@@ -20,11 +20,11 @@ def coadded_catalog(sextractorxx, datafiles, module_output_area, signal_to_noise
     if not os.path.exists(output_catalog):
         run = sextractorxx(
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags',
-            detection_image=datafiles / 'sim09' / 'sim09_r.fits',
-            psf_file=datafiles / 'sim09' / 'sim09_r.psf',
-            weight_image=datafiles / 'sim09' / 'sim09_r.weight.fits',
+            detection_image=datafiles / 'sim09' / 'img' / 'sim09_r.fits',
+            weight_image=datafiles / 'sim09' / 'img' / 'sim09_r.weight.fits',
             weight_type='weight',
-            weight_absolute=True
+            weight_absolute=True,
+            psf_file=datafiles / 'sim09' / 'psf' / 'sim09_r.psf'
         )
         assert run.exit_code == 0
 
@@ -35,7 +35,7 @@ def coadded_catalog(sextractorxx, datafiles, module_output_area, signal_to_noise
 
 def test_detection(coadded_catalog, coadded_reference):
     """
-    Test that the number of results matches the reference, and that they are reasonably close
+    Test that the number of results matches the ref, and that they are reasonably close
     """
     assert len(coadded_catalog) > 0
     assert len(coadded_catalog) == len(coadded_reference)
@@ -43,7 +43,7 @@ def test_detection(coadded_catalog, coadded_reference):
 
 def test_location(coadded_catalog, coadded_reference, stuff_simulation, tolerances):
     """
-    The detections should be at least as close as the reference to the truth.
+    The detections should be at least as close as the ref to the truth.
     Single frame simulations are in pixel coordinates.
     """
     _, _, kdtree = stuff_simulation
@@ -66,7 +66,7 @@ def test_location(coadded_catalog, coadded_reference, stuff_simulation, toleranc
 )
 def test_fluxes(coadded_catalog, coadded_reference, flux_column, reference_flux_column, tolerances):
     """
-    Cross-validate flux columns. The measured fluxes and errors should be close to the reference.
+    Cross-validate flux columns. The measured fluxes and errors should be close to the ref.
     """
     target_flux = get_column(coadded_catalog, flux_column[0])
     reference_flux = get_column(coadded_reference, reference_flux_column[0])
@@ -88,7 +88,7 @@ def test_fluxes(coadded_catalog, coadded_reference, flux_column, reference_flux_
 def test_magnitude(coadded_catalog, coadded_reference, mag_column, reference_mag_column, stuff_simulation, tolerances):
     """
     Cross-validate the magnitude columns. The measured magnitudes should be at least as close
-    to the truth as the reference catalog (within a tolerance).
+    to the truth as the ref catalog (within a tolerance).
     """
     stars, galaxies, kdtree = stuff_simulation
     expected_mags = np.append(stars.mag, galaxies.mag)
@@ -113,6 +113,6 @@ def test_generate_report(coadded_catalog, coadded_reference, stuff_simulation, d
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     plot.generate_report(
-        module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'sim09_r.fits',
+        module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'img' / 'sim09_r.fits',
         coadded_catalog, coadded_reference
     )

@@ -29,8 +29,8 @@ def single_frame_catalog(sextractorxx, datafiles, module_output_area, signal_to_
     if not os.path.exists(output_catalog):
         run = sextractorxx(
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags',
-            detection_image=datafiles / 'sim09' / 'sim09_r_01.fits',
-            psf_file=datafiles / 'sim09' / 'sim09_r_01.psf',
+            detection_image=datafiles / 'sim09' / 'img' / 'sim09_r_01.fits',
+            psf_file=datafiles / 'sim09' / 'psf' / 'sim09_r_01.psf',
             python_config_file=None
         )
         assert run.exit_code == 0
@@ -42,7 +42,7 @@ def single_frame_catalog(sextractorxx, datafiles, module_output_area, signal_to_
 
 def test_detection(single_frame_catalog, reference):
     """
-    Test that the number of results matches the reference, and that they are reasonably close
+    Test that the number of results matches the ref, and that they are reasonably close
     """
     assert len(single_frame_catalog) > 0
     assert len(single_frame_catalog) == len(reference)
@@ -50,7 +50,7 @@ def test_detection(single_frame_catalog, reference):
 
 def test_location(single_frame_catalog, reference, stuff_simulation, tolerances):
     """
-    The detections should be at least as close as the reference to the truth.
+    The detections should be at least as close as the ref to the truth.
     Single frame simulations are in pixel coordinates.
     """
     _, _, kdtree = stuff_simulation
@@ -73,7 +73,7 @@ def test_location(single_frame_catalog, reference, stuff_simulation, tolerances)
 )
 def test_fluxes(single_frame_catalog, reference, flux_column, reference_flux_column, tolerances):
     """
-    Cross-validate flux columns. The measured fluxes and errors should be close to the reference.
+    Cross-validate flux columns. The measured fluxes and errors should be close to the ref.
     """
     target_flux = get_column(single_frame_catalog, flux_column[0])
     reference_flux = get_column(reference, reference_flux_column[0])
@@ -95,7 +95,7 @@ def test_fluxes(single_frame_catalog, reference, flux_column, reference_flux_col
 def test_magnitude(single_frame_catalog, reference, mag_column, reference_mag_column, stuff_simulation, tolerances):
     """
     Cross-validate the magnitude columns. The measured magnitudes should be at least as close
-    to the truth as the reference catalog (within a tolerance).
+    to the truth as the ref catalog (within a tolerance).
     """
     stars, galaxies, kdtree = stuff_simulation
     expected_mags = np.append(stars.mag, galaxies.mag)
@@ -120,6 +120,6 @@ def test_generate_report(single_frame_catalog, reference, stuff_simulation, data
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     plot.generate_report(
-        module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'sim09_r_01.fits',
+        module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'img' / 'sim09_r_01.fits',
         single_frame_catalog, reference
     )
