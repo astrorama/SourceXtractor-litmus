@@ -10,10 +10,30 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.gridspec import GridSpec
 
 from util import stuff
+from . import get_column
 
 _page_size = (11.7, 8.3)
 _img_cmap = plt.get_cmap('Greys_r')
 _img_norm = colors.SymLogNorm(10)
+
+_flag_style = {
+    stuff.SourceFlags.BIASED: ('red', '1'),
+    stuff.SourceFlags.BLENDED: ('blue', '2'),
+    stuff.SourceFlags.SATURATED: ('orange', '+'),
+    stuff.SourceFlags.BOUNDARY: ('pink', '3'),
+    stuff.SourceFlags.NEIGHBORS: ('cyan', '4'),
+    stuff.SourceFlags.OUTSIDE: ('white', 'x')
+}
+_sex2_flag_style = {
+    stuff.Sex2SourceFlags.BIASED: ('red', '1'),
+    stuff.Sex2SourceFlags.BLENDED: ('blue', '2'),
+    stuff.Sex2SourceFlags.SATURATED: ('orange', '+'),
+    stuff.Sex2SourceFlags.BOUNDARY: ('pink', '3'),
+    stuff.Sex2SourceFlags.APERTURE_INCOMPLETE: ('skyblue', '4'),
+    stuff.Sex2SourceFlags.ISOPHOTAL_INCOMPLETE: ('darkcyan', '1'),
+    stuff.Sex2SourceFlags.DEBLENDING_OVERFLOW: ('crimson', 'D'),
+    stuff.Sex2SourceFlags.EXTRACTION_OVERFLOW: ('crimson', 'X'),
+}
 
 
 class Plot(object):
@@ -25,7 +45,6 @@ class Plot(object):
 class Report(object):
     def __init__(self, path):
         self.__pdf = PdfPages(path)
-        self.__plots = []
 
     def __enter__(self):
         return self
@@ -34,15 +53,13 @@ class Report(object):
         self.close()
 
     def close(self):
-        for plot in self.__plots:
-            for fig in plot.get_figures():
-                self.__pdf.savefig(fig)
-                plt.close(fig)
         self.__pdf.close()
 
     def add(self, plot):
         assert isinstance(plot, Plot)
-        self.__plots.append(plot)
+        for fig in plot.get_figures():
+            self.__pdf.savefig(fig)
+            plt.close(fig)
 
 
 class Location(Plot):
@@ -89,7 +106,7 @@ class Distances(Plot):
 
 
 class Magnitude(Plot):
-    def __init__(self, band_name, kdtree, real_values):
+    def __init__(self, name, kdtree, real_values):
         self.__mags = real_values
         self.__kdtree = kdtree
         self.__figure = plt.figure(figsize=_page_size)
@@ -99,7 +116,7 @@ class Magnitude(Plot):
 
         # First plot: computed (Y) vs real (X)
         self.__ax_mag = self.__figure.add_subplot(gridspec.new_subplotspec((0, 0), 2))
-        self.__ax_mag.set_title(f'Magnitude comparison for {band_name}')
+        self.__ax_mag.set_title(f'Magnitude comparison for {name}')
         self.__ax_mag.set_ylabel('Measured value')
         self.__ax_mag.grid(True, linestyle=':')
 
@@ -119,13 +136,58 @@ class Magnitude(Plot):
         self.__ax_err.set_xlabel('Real magnitude')
         self.__ax_err.grid(True, linestyle=':')
 
-    def add(self, label, catalog, alpha, delta, mag, mag_err, marker=None):
-        closest = stuff.get_closest(catalog, self.__kdtree, alpha, delta)
+    def add(self, label, catalog, alpha_col, delta_col, mag_col, mag_err_col, marker=None):
+        closest = stuff.get_closest(catalog, self.__kdtree, alpha_col, delta_col)
         source_mag = self.__mags[closest['source']]
-        self.__ax_mag.scatter(source_mag, catalog[mag], label=label, marker=marker)
-        self.__ax_delta.scatter(source_mag, catalog[mag] - source_mag, label=label, marker=marker)
-        self.__ax_err.scatter(source_mag, catalog[mag_err], marker=marker)
+        mag = get_column(catalog, mag_col)
+        mag_err = get_column(catalog, mag_err_col)
+        self.__ax_mag.scatter(source_mag, mag, label=label, marker=marker)
+        self.__ax_delta.scatter(source_mag, mag - source_mag, label=label, marker=marker)
+        self.__ax_err.scatter(source_mag, mag_err, marker=marker)
 
     def get_figures(self):
         self.__ax_mag.legend()
+        return [self.__figure]
+
+
+class Flags(Plot):
+    def __init__(self, image):
+        hdu = fits.open(image)[0]
+        self.__image = hdu.data
+        self.__wcs = WCS(hdu.header)
+        self.__figure = plt.figure(figsize=_page_size)
+        self.__ax1 = self.__figure.add_subplot(1, 2, 1, projection=self.__wcs)
+        self.__ax1.imshow(self.__image, cmap=_img_cmap, norm=_img_norm)
+        self.__ax2 = self.__figure.add_subplot(1, 2, 2, projection=self.__wcs)
+        self.__ax2.imshow(self.__image, cmap=_img_cmap, norm=_img_norm)
+
+    def __set(self, ax, label, catalog, alpha_col, delta_col, flag_col, is_sex2=False):
+        ax.set_title(label)
+        pix_coord = self.__wcs.all_world2pix(catalog[alpha_col], catalog[delta_col], 0)
+        if is_sex2:
+            flag_enum = stuff.Sex2SourceFlags
+            flag_style = _sex2_flag_style
+        else:
+            flag_enum = stuff.SourceFlags
+            flag_style = _flag_style
+
+        for flag in flag_enum:
+            if int(flag) == 0:
+                continue
+            flag_filter = (get_column(catalog, flag_col) & int(flag)).astype(np.bool)
+            flag_color, flag_marker = flag_style[flag]
+            if flag_filter.any():
+                ax.scatter(
+                    pix_coord[0][flag_filter], pix_coord[1][flag_filter],
+                    c=flag_color, marker=flag_marker, label=flag
+                )
+        ax.legend()
+
+    def set1(self, *args, **kwargs):
+        self.__set(self.__ax1, *args, **kwargs)
+
+    def set2(self, *args, **kwargs):
+        self.__set(self.__ax2, *args, **kwargs)
+
+    def get_figures(self):
         return [self.__figure]

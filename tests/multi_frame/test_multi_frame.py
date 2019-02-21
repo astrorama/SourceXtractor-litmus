@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from astropy.table import Table
 
-from util import stuff, get_column, plot
+from util import stuff, plot2
 
 
 @pytest.fixture
@@ -133,10 +133,44 @@ def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, d
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
-    plot.generate_report(
-        module_output_area / 'report.pdf', stuff_simulation_r, datafiles / 'sim09' / 'img' / 'sim09_r.fits',
-        multi_frame_catalog, reference_r,
-        target_columns=[[(f'auto_mag:{i}', f'auto_mag_err:{i}') for i in range(10)]],
-        reference_columns=[[(f'MAG_AUTO', 'MAGERR_AUTO')] * 10],
-        target_flag_columns=[f'auto_flags:{i}' for i in range(10)],
-    )
+    with plot2.Report(module_output_area / 'report.pdf') as report:
+        loc_map = plot2.Location(datafiles / 'sim09' / 'img' / 'sim09.fits')
+        loc_map.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY', marker='1')
+        loc_map.add('SExtractor++', multi_frame_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='3')
+        report.add(loc_map)
+
+        dist = plot2.Distances(stuff_simulation_r)
+        dist.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY')
+        dist.add('SExtractor++', multi_frame_catalog, 'world_centroid_alpha', 'world_centroid_delta')
+        report.add(dist)
+
+        for i in range(10):
+            mag_r = plot2.Magnitude(
+                f'auto_mag:{i}', stuff_simulation_r[2],
+                np.append(stuff_simulation_r[0].mag, stuff_simulation_r[1].mag),
+            )
+            mag_r.add(
+                'SExtractor2', reference_r,
+                'ALPHA_SKY', 'DELTA_SKY',
+                'MAG_AUTO', 'MAGERR_AUTO',
+                marker='o'
+            )
+            mag_r.add(
+                'SExtractor++', multi_frame_catalog,
+                'world_centroid_alpha', 'world_centroid_delta',
+                f'auto_mag:{i}', f'auto_mag_err:{i}',
+                marker='.'
+            )
+            report.add(mag_r)
+
+        for i in range(10):
+            flag_r = plot2.Flags(datafiles / 'sim09' / 'img' / 'sim09.fits')
+            flag_r.set1(
+                'SExtractor2', reference_r,
+                'ALPHA_SKY', 'DELTA_SKY', 'FLAGS'
+            )
+            flag_r.set2(
+                f'SExtractor++ auto_flags:{i}', multi_frame_catalog,
+                'world_centroid_alpha', 'world_centroid_delta', f'auto_flags:{i}'
+            )
+            report.add(flag_r)
