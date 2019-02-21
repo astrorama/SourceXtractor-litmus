@@ -145,10 +145,7 @@ def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, d
         report.add(dist)
 
         for i in range(10):
-            mag_r = plot2.Magnitude(
-                f'auto_mag:{i}', stuff_simulation_r[2],
-                np.append(stuff_simulation_r[0].mag, stuff_simulation_r[1].mag),
-            )
+            mag_r = plot2.Magnitude(f'auto_mag:{i}', stuff_simulation_r)
             mag_r.add(
                 'SExtractor2', reference_r,
                 'ALPHA_SKY', 'DELTA_SKY',

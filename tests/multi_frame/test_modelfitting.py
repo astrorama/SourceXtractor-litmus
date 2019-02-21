@@ -83,10 +83,7 @@ def test_generate_report(modelfitting_catalog, stuff_simulation_r, stuff_simulat
         dist.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta')
         report.add(dist)
 
-        mag_r = plot2.Magnitude(
-            'R', stuff_simulation_r[2],
-            np.append(stuff_simulation_r[0].mag, stuff_simulation_r[1].mag),
-        )
+        mag_r = plot2.Magnitude('R', stuff_simulation_r)
         mag_r.add(
             'SExtractor2',
             reference_r, 'ALPHA_SKY', 'DELTA_SKY', 'MAG_MODEL', 'MAGERR_MODEL',
@@ -99,10 +96,7 @@ def test_generate_report(modelfitting_catalog, stuff_simulation_r, stuff_simulat
         )
         report.add(mag_r)
 
-        mag_g = plot2.Magnitude(
-            'G', stuff_simulation_g[2],
-            np.append(stuff_simulation_g[0].mag, stuff_simulation_g[1].mag),
-        )
+        mag_g = plot2.Magnitude('G', stuff_simulation_g)
         mag_g.add(
             'SExtractor2',
             reference_r, 'ALPHA_SKY', 'DELTA_SKY', 'MAG_MODEL', 'MAGERR_MODEL',

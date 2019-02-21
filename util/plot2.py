@@ -106,9 +106,9 @@ class Distances(Plot):
 
 
 class Magnitude(Plot):
-    def __init__(self, name, kdtree, real_values):
-        self.__mags = real_values
-        self.__kdtree = kdtree
+    def __init__(self, name, simulation):
+        self.__mags = np.append(simulation[0].mag, simulation[1].mag)
+        self.__kdtree = simulation[2]
         self.__figure = plt.figure(figsize=_page_size)
         self.__figure.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
 
@@ -147,6 +147,41 @@ class Magnitude(Plot):
 
     def get_figures(self):
         self.__ax_mag.legend()
+        return [self.__figure]
+
+
+class Scatter(Plot):
+    def __init__(self, name, simulation):
+        self.__mags = np.append(simulation[0].mag, simulation[1].mag)
+        self.__kdtree = simulation[2]
+        self.__figure = plt.figure(figsize=_page_size)
+        self.__figure.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
+
+        gridspec = GridSpec(2, 1)
+
+        # First plot: values
+        self.__ax_val = self.__figure.add_subplot(gridspec.new_subplotspec((0, 0)))
+        self.__ax_val.set_title(f'{name}')
+        self.__ax_val.set_ylabel('Measured value')
+        self.__ax_val.grid(True, linestyle=':')
+
+        # Second plot: errors
+        self.__ax_err = self.__figure.add_subplot(gridspec.new_subplotspec((1, 0)), sharex=self.__ax_val)
+        self.__ax_err.set_facecolor('oldlace')
+        self.__ax_err.set_ylabel('Measured error')
+        self.__ax_err.set_xlabel('Real magnitude')
+        self.__ax_err.grid(True, linestyle=':')
+
+    def add(self, label, catalog, alpha_col, delta_col, val_col, err_col, marker=None):
+        closest = stuff.get_closest(catalog, self.__kdtree, alpha_col, delta_col)
+        source_mag = self.__mags[closest['source']]
+        val = get_column(catalog, val_col)
+        err = get_column(catalog, err_col)
+        self.__ax_val.scatter(source_mag, val, label=label, marker=marker)
+        self.__ax_err.scatter(source_mag, err, marker=marker)
+
+    def get_figures(self):
+        self.__ax_val.legend()
         return [self.__figure]
 
 
@@ -191,3 +226,98 @@ class Flags(Plot):
 
     def get_figures(self):
         return [self.__figure]
+
+
+def generate_report(output, simulation, image, target, reference):
+    with Report(output) as report:
+        loc_map = Location(image)
+        loc_map.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY', marker='o')
+        loc_map.add('SExtractor++', target, 'world_centroid_alpha', 'world_centroid_delta', marker='.')
+        report.add(loc_map)
+
+        dist = Distances(simulation)
+        dist.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY')
+        dist.add('SExtractor++', target, 'world_centroid_alpha', 'world_centroid_delta')
+        report.add(dist)
+
+        flux_iso = Scatter('FLUX_ISO vs isophotal_flux', simulation)
+        flux_iso.add(
+            'SExtractor2', reference,
+            'ALPHA_SKY', 'DELTA_SKY',
+            'FLUX_ISO', 'FLUXERR_ISO',
+            marker='o'
+        )
+        flux_iso.add(
+            'SExtractor++', target,
+            'world_centroid_alpha', 'world_centroid_delta',
+            'isophotal_flux', 'isophotal_flux_err',
+            marker='.'
+        )
+        report.add(flux_iso)
+
+        flux_auto = Scatter('FLUX_AUTO vs auto_flux', simulation)
+        flux_auto.add(
+            'SExtractor2', reference,
+            'ALPHA_SKY', 'DELTA_SKY',
+            'FLUX_AUTO', 'FLUXERR_AUTO',
+            marker='o'
+        )
+        flux_auto.add(
+            'SExtractor++', target,
+            'world_centroid_alpha', 'world_centroid_delta',
+            'auto_flux', 'auto_flux_err',
+            marker='.'
+        )
+        report.add(flux_auto)
+
+        mag_iso = Magnitude('MAG_ISO vs isophotal_mag', simulation)
+        mag_iso.add(
+            'SExtractor2', reference,
+            'ALPHA_SKY', 'DELTA_SKY',
+            'MAG_ISO', 'MAGERR_ISO',
+            marker='o'
+        )
+        mag_iso.add(
+            'SExtractor++', target,
+            'world_centroid_alpha', 'world_centroid_delta',
+            'isophotal_mag', 'isophotal_mag_err',
+            marker='.'
+        )
+        report.add(mag_iso)
+
+        mag_auto = Magnitude('MAG_AUTO vs auto_mag', simulation)
+        mag_auto.add(
+            'SExtractor2', reference,
+            'ALPHA_SKY', 'DELTA_SKY',
+            'MAG_AUTO', 'MAGERR_AUTO',
+            marker='o'
+        )
+        mag_auto.add(
+            'SExtractor++', target,
+            'world_centroid_alpha', 'world_centroid_delta',
+            'auto_mag', 'auto_mag_err',
+            marker='.'
+        )
+        report.add(mag_auto)
+
+        src_flags = Flags(image)
+        src_flags.set1(
+            'SExtractor2', reference,
+            'ALPHA_SKY', 'DELTA_SKY', 'FLAGS'
+        )
+        src_flags.set2(
+            'SExtractor++ source_flags', target,
+            'world_centroid_alpha', 'world_centroid_delta', 'source_flags'
+        )
+        report.add(src_flags)
+
+        auto_flags = Flags(image)
+        auto_flags.set1(
+            'SExtractor2', reference,
+            'ALPHA_SKY', 'DELTA_SKY', 'FLAGS'
+        )
+        auto_flags.set2(
+            'SExtractor++ auto_flags', target,
+            'world_centroid_alpha', 'world_centroid_delta', 'auto_flags'
+        )
+        report.add(auto_flags)

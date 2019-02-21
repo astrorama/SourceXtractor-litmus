@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from astropy.table import Table
 
-from util import stuff, get_column, plot
+from util import stuff, get_column, plot2
 
 
 @pytest.fixture
@@ -112,7 +112,7 @@ def test_generate_report(coadded_catalog, coadded_reference, stuff_simulation, d
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
-    plot.generate_report(
+    plot2.generate_report(
         module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'img' / 'sim09_r.fits',
         coadded_catalog, coadded_reference
     )

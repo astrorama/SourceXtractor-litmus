@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from astropy.table import Table
 
-from util import stuff, plot
+from util import stuff, plot2
 
 
 @pytest.fixture
@@ -62,16 +62,26 @@ def test_generate_report(modelfitting_catalog, reference, stuff_simulation, data
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
-    plot.generate_report(
-        module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'img' / 'sim09_r_01.fits',
-        modelfitting_catalog, reference,
-        target_columns=[
-            [('mag_r', 'mag_r_err')],
-            [('flux_r', 'flux_r_err')]
-        ],
-        reference_columns=[
-            [('MAG_MODEL', 'MAGERR_MODEL')],
-            [('FLUX_MODEL', 'FLUXERR_MODEL')]
-        ],
-        target_flag_columns=None
-    )
+    with plot2.Report(module_output_area / 'report.pdf') as report:
+        loc_map = plot2.Location(datafiles / 'sim09' / 'img' / 'sim09.fits')
+        loc_map.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY', marker='1')
+        loc_map.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='3')
+        report.add(loc_map)
+
+        dist = plot2.Distances(stuff_simulation)
+        dist.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY')
+        dist.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta')
+        report.add(dist)
+
+        mag_r = plot2.Magnitude('R', stuff_simulation)
+        mag_r.add(
+            'SExtractor2',
+            reference, 'ALPHA_SKY', 'DELTA_SKY', 'MAG_MODEL', 'MAGERR_MODEL',
+            marker='o'
+        )
+        mag_r.add(
+            'SExtractor++',
+            modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', 'mag_r', 'mag_r_err',
+            marker='.'
+        )
+        report.add(mag_r)
