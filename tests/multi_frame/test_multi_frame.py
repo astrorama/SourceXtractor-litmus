@@ -36,47 +36,47 @@ def multi_frame_catalog(sextractorxx, datafiles, module_output_area, signal_to_n
     return np.sort(catalog[bright_filter], order=('world_centroid_alpha', 'world_centroid_delta'))
 
 
-def test_detection(multi_frame_catalog, reference):
+def test_detection(multi_frame_catalog, reference_r):
     """
     Test that the number of results matches the ref, and that they are reasonably close
     """
     assert len(multi_frame_catalog) > 0
-    assert len(multi_frame_catalog) == len(reference)
+    assert len(multi_frame_catalog) == len(reference_r)
 
 
-def test_location(multi_frame_catalog, reference, stuff_simulation, tolerances):
+def test_location(multi_frame_catalog, reference_r, stuff_simulation_r, tolerances):
     """
     The detections should be at least as close as the ref to the truth.
     Single frame simulations are in pixel coordinates.
     """
-    _, _, kdtree = stuff_simulation
+    _, _, kdtree = stuff_simulation_r
 
     det_closest = stuff.get_closest(
         multi_frame_catalog, kdtree
     )
     ref_closest = stuff.get_closest(
-        reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
+        reference_r, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
     )
 
     assert np.mean(det_closest['dist']) <= np.mean(ref_closest['dist']) * (1 + tolerances['distance'])
 
 
-def test_iso_magnitude(multi_frame_catalog, reference, stuff_simulation, tolerances):
+def test_iso_magnitude(multi_frame_catalog, reference_r, stuff_simulation_r, tolerances):
     """
     Cross-validate the magnitude columns. The measured magnitudes should be at least as close
     to the truth as the ref catalog (within a tolerance).
     ISO is measured on the detection frame
     """
-    stars, galaxies, kdtree = stuff_simulation
+    stars, galaxies, kdtree = stuff_simulation_r
     expected_mags = np.append(stars.mag, galaxies.mag)
 
     target_closest = stuff.get_closest(multi_frame_catalog, kdtree)
     ref_closest = stuff.get_closest(
-        reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
+        reference_r, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
     )
 
     target_mag = multi_frame_catalog['isophotal_mag']
-    ref_mag = reference['MAG_ISO']
+    ref_mag = reference_r['MAG_ISO']
 
     relative_target_diff = np.abs((expected_mags[target_closest['source']] - target_mag) / target_mag)
     relative_ref_diff = np.abs((expected_mags[ref_closest['source']] - ref_mag) / ref_mag)
@@ -87,12 +87,12 @@ def test_iso_magnitude(multi_frame_catalog, reference, stuff_simulation, toleran
 @pytest.mark.parametrize(
     'frame', range(10)
 )
-def test_auto_magnitude(frame, multi_frame_catalog, stuff_simulation, tolerances):
+def test_auto_magnitude(frame, multi_frame_catalog, stuff_simulation_r, tolerances):
     """
     AUTO is measured on the measurement frames, so it is trickier. Need to run the test for each
     frame, and filter out sources that are on the boundary or outside.
     """
-    stars, galaxies, kdtree = stuff_simulation
+    stars, galaxies, kdtree = stuff_simulation_r
     expected_mags = np.append(stars.mag, galaxies.mag)
 
     target_filter = (multi_frame_catalog['auto_flags'][:, frame] == 0)
@@ -109,12 +109,12 @@ def test_auto_magnitude(frame, multi_frame_catalog, stuff_simulation, tolerances
 @pytest.mark.parametrize(
     ['frame', 'aper_idx'], itertools.product(range(10), [0, 1, 2])
 )
-def test_aper_magnitude(frame, aper_idx, multi_frame_catalog, stuff_simulation, tolerances):
+def test_aper_magnitude(frame, aper_idx, multi_frame_catalog, stuff_simulation_r, tolerances):
     """
     APERTURE is measured on the measurement frames, so it is trickier. Need to run the test for each
     frame, and filter out sources that are on the boundary or outside.
     """
-    stars, galaxies, kdtree = stuff_simulation
+    stars, galaxies, kdtree = stuff_simulation_r
     expected_mags = np.append(stars.mag, galaxies.mag)
 
     target_filter = (multi_frame_catalog['aperture_flags'][:, frame, aper_idx] == 0)
@@ -129,13 +129,13 @@ def test_aper_magnitude(frame, aper_idx, multi_frame_catalog, stuff_simulation, 
     ).all()
 
 
-def test_generate_report(multi_frame_catalog, reference, stuff_simulation, datafiles, module_output_area):
+def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     plot.generate_report(
-        module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'img' / 'sim09_r.fits',
-        multi_frame_catalog, reference,
+        module_output_area / 'report.pdf', stuff_simulation_r, datafiles / 'sim09' / 'img' / 'sim09_r.fits',
+        multi_frame_catalog, reference_r,
         target_columns=[[(f'auto_mag:{i}', f'auto_mag_err:{i}') for i in range(10)]],
         reference_columns=[[(f'MAG_AUTO', 'MAGERR_AUTO')] * 10],
         target_flag_columns=[f'auto_flags:{i}' for i in range(10)],
