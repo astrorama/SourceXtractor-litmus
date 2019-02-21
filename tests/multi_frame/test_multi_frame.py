@@ -20,7 +20,7 @@ def multi_frame_catalog(sextractorxx, datafiles, module_output_area, signal_to_n
     output_catalog = module_output_area / 'output.fits'
     if not os.path.exists(output_catalog):
         run = sextractorxx(
-            output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags',
+            output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels',
             detection_image=datafiles / 'sim09' / 'img' / 'sim09_r.fits',
             weight_image=datafiles / 'sim09' / 'img' / 'sim09_r.weight.fits',
             weight_type='weight',
