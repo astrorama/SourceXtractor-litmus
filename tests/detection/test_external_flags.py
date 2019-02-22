@@ -8,7 +8,7 @@ def test_external_missing_file(sextractorxx, datafiles):
     """
     run = sextractorxx(
         detection_image=datafiles / 'simple' / 'saturated.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test='/tmp/does/not/exist.fits',
         flag_type_test='OR'
     )
@@ -22,7 +22,7 @@ def test_external_missing_type(sextractorxx, datafiles):
     """
     run = sextractorxx(
         detection_image=datafiles / 'simple' / 'saturated.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test='/tmp/does/not/exist.fits'
     )
     assert run.exit_code > 0
@@ -35,7 +35,7 @@ def test_external_bad_operator(sextractorxx, datafiles):
     """
     run = sextractorxx(
         detection_image=datafiles / 'simple' / 'saturated.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
         flag_type_test='XXX'
     )
@@ -49,7 +49,7 @@ def test_external_bad_file(sextractorxx, datafiles):
     """
     run = sextractorxx(
         detection_image=datafiles / 'simple' / 'saturated.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'sim09' / 'default.param',
         flag_type_test='OR'
     )
@@ -63,7 +63,7 @@ def test_external_bad_size(sextractorxx, datafiles):
     """
     run = sextractorxx(
         detection_image=datafiles / 'simple' / 'boundary.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
         flag_type_test='OR'
     )
@@ -76,7 +76,7 @@ def test_external_or(sextractorxx, datafiles):
     """
     run = sextractorxx(
         detection_image=datafiles / 'simple' / 'saturated.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
         flag_type_test='OR',
     )
@@ -99,7 +99,7 @@ def test_external_and(sextractorxx, datafiles):
     """
     run = sextractorxx(
         detection_image=datafiles / 'simple' / 'saturated.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
         flag_type_test='AND',
     )
@@ -122,7 +122,7 @@ def test_external_min(sextractorxx, datafiles):
     """
     run = sextractorxx(
         detection_image=datafiles / 'simple' / 'saturated.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
         flag_type_test='MIN',
     )
@@ -144,7 +144,7 @@ def test_external_max(sextractorxx, datafiles):
     """
     run = sextractorxx(
         detection_image=datafiles / 'simple' / 'saturated.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
         flag_type_test='MAX',
     )
@@ -166,7 +166,7 @@ def test_external_most(sextractorxx, datafiles):
     """
     run = sextractorxx(
         detection_image=datafiles / 'simple' / 'saturated.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
         flag_type_test='MOST',
     )
@@ -188,7 +188,7 @@ def test_external_pass_two(sextractorxx, datafiles):
     """
     run = sextractorxx(
         detection_image=datafiles / 'simple' / 'saturated.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags',
+        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
         flag_type_test='OR',
         flag_image_test2=datafiles / 'simple' / 'saturated_flags.fits',
