@@ -8,6 +8,7 @@ from matplotlib import colors
 
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.gridspec import GridSpec
+from scipy.stats import ks_2samp
 
 from util import stuff
 from . import get_column
@@ -64,6 +65,7 @@ class Report(object):
 
 class Location(Plot):
     def __init__(self, image):
+        super(Location, self).__init__()
         hdu = fits.open(image)[0]
         self.__image = hdu.data
         self.__wcs = WCS(hdu.header)
@@ -83,6 +85,7 @@ class Location(Plot):
 
 class Distances(Plot):
     def __init__(self, simulation):
+        super(Distances, self).__init__()
         self.__kdtree = simulation[2]
         self.__entries = []
 
@@ -107,6 +110,7 @@ class Distances(Plot):
 
 class Magnitude(Plot):
     def __init__(self, name, simulation):
+        super(Magnitude, self).__init__()
         self.__mags = np.append(simulation[0].mag, simulation[1].mag)
         self.__kdtree = simulation[2]
         self.__figure = plt.figure(figsize=_page_size)
@@ -152,6 +156,7 @@ class Magnitude(Plot):
 
 class Scatter(Plot):
     def __init__(self, name, simulation):
+        super(Scatter, self).__init__()
         self.__mags = np.append(simulation[0].mag, simulation[1].mag)
         self.__kdtree = simulation[2]
         self.__figure = plt.figure(figsize=_page_size)
@@ -187,6 +192,7 @@ class Scatter(Plot):
 
 class Flags(Plot):
     def __init__(self, image):
+        super(Flags, self).__init__()
         hdu = fits.open(image)[0]
         self.__image = hdu.data
         self.__wcs = WCS(hdu.header)
@@ -225,6 +231,89 @@ class Flags(Plot):
         self.__set(self.__ax2, *args, **kwargs)
 
     def get_figures(self):
+        return [self.__figure]
+
+
+class CumulativeHistogram(Plot):
+    def __init__(self, simulation, nbins=50):
+        super(CumulativeHistogram, self).__init__()
+        self.__stars = simulation[0]
+        self.__galaxies = simulation[1]
+        self.__kdtree = simulation[2]
+        self.__star_dists = []
+        self.__galaxy_dists = []
+        self.__figure = plt.Figure(figsize=_page_size)
+
+        self.__ax_stars = self.__figure.add_subplot(2, 1, 1)
+        self.__ax_stars.grid(True)
+        self.__ax_stars.set_title('Stars CDF')
+        self.__ax_stars.set_xlabel('Magnitude')
+
+        _, self.__bins, _ = self.__ax_stars.hist(
+            self.__stars.mag, bins=nbins,
+            density=True, cumulative=True,
+            label='Truth'
+        )
+
+        self.__ax_galaxies = self.__figure.add_subplot(2, 1, 2, sharex=self.__ax_stars)
+        self.__ax_galaxies.grid(True)
+        self.__ax_galaxies.set_title('Galaxies CDF')
+        self.__ax_galaxies.set_xlabel('Magnitude')
+
+        self.__ax_galaxies.hist(
+            self.__galaxies.mag, bins=self.__bins,
+            density=True, cumulative=True,
+            label='Truth'
+        )
+
+    def add(self, label, catalog, alpha_col, delta_col, mag_col):
+        closest = stuff.get_closest(catalog, self.__kdtree, alpha_col, delta_col)
+        star_filter = (closest['source'] < len(self.__stars))
+        galaxy_filter = (closest['source'] >= len(self.__galaxies))
+        mag = get_column(catalog, mag_col)
+
+        self.__ax_stars.hist(
+            mag[closest['catalog'][star_filter]],
+            density=True, cumulative=True,
+            bins=self.__bins, histtype='step',
+            label=label
+        )
+        self.__ax_galaxies.hist(
+            mag[closest['catalog'][galaxy_filter]],
+            density=True, cumulative=True,
+            bins=self.__bins, histtype='step',
+            label=label
+        )
+
+        self.__star_dists.append((label, mag[closest['catalog'][star_filter]]))
+        self.__galaxy_dists.append((label, mag[closest['catalog'][galaxy_filter]]))
+
+    def get_figures(self):
+        text = []
+        for a, b in zip(self.__star_dists, self.__star_dists[1:]):
+            a_label, a_stars = a
+            b_label, b_stars = b
+            try:
+                ks = ks_2samp(a_stars, b_stars)
+                text.append(f'$H_0$({a_label} $\\approx$ {b_label}) p-value = {ks.pvalue:.2e}')
+            except:
+                pass
+        self.__ax_stars.text(self.__stars.mag.min(), 0.1, '\n'.join(text), bbox=dict(facecolor='whitesmoke'))
+        self.__ax_stars.legend()
+
+        text = []
+        for a, b in zip(self.__galaxy_dists, self.__galaxy_dists[1:]):
+            a_label, a_galaxies = a
+            b_label, b_galaxies = b
+            try:
+                ks = ks_2samp(a_galaxies, b_galaxies)
+                text.append(f'$H_0$({a_label} $\\approx$ {b_label}) p-value = {ks.pvalue:.2e}')
+            except:
+                pass
+        self.__ax_galaxies.text(self.__stars.mag.min(), 0.1, '\n'.join(text), bbox=dict(facecolor='whitesmoke'))
+
+        self.__ax_galaxies.legend()
+        self.__figure.tight_layout()
         return [self.__figure]
 
 
@@ -285,6 +374,19 @@ def generate_report(output, simulation, image, target, reference):
         )
         report.add(mag_iso)
 
+        iso_hist = CumulativeHistogram(simulation)
+        iso_hist.add(
+            'SExtractor2 MAG_ISO', reference,
+            'ALPHA_SKY', 'DELTA_SKY',
+            'MAG_ISO'
+        )
+        iso_hist.add(
+            'SExtractor++ isophotal_mag', target,
+            'world_centroid_alpha', 'world_centroid_delta',
+            'isophotal_mag'
+        )
+        report.add(iso_hist)
+
         mag_auto = Magnitude('MAG_AUTO vs auto_mag', simulation)
         mag_auto.add(
             'SExtractor2', reference,
@@ -299,6 +401,37 @@ def generate_report(output, simulation, image, target, reference):
             marker='.'
         )
         report.add(mag_auto)
+
+        auto_hist = CumulativeHistogram(simulation)
+        auto_hist.add(
+            'SExtractor2 MAG_AUTO', reference,
+            'ALPHA_SKY', 'DELTA_SKY',
+            'MAG_AUTO'
+        )
+        auto_hist.add(
+            'SExtractor++ auto_mag', target,
+            'world_centroid_alpha', 'world_centroid_delta',
+            'auto_mag'
+        )
+        report.add(auto_hist)
+
+        # Try apertures columns
+        if 'aperture_mag' in target.dtype.names:
+            target_aperture_mag = target['aperture_mag']
+            aper_hist = CumulativeHistogram(simulation)
+            n_aper = target_aperture_mag.shape[2]
+            for i in range(n_aper):
+                aper_hist.add(
+                    f'SExtractor2 aperture {i}', reference,
+                    'ALPHA_SKY', 'DELTA_SKY',
+                    f'MAG_APER:{i}'
+                )
+                aper_hist.add(
+                    f'SExtractor++ aperture {i}', target,
+                    'world_centroid_alpha', 'world_centroid_delta',
+                    f'aperture_mag:0:{i}'
+                )
+            report.add(aper_hist)
 
         src_flags = Flags(image)
         src_flags.set1(
