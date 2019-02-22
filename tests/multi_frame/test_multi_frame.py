@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from astropy.table import Table
 
-from util import stuff, plot2
+from util import stuff, plot
 
 
 @pytest.fixture
@@ -133,19 +133,19 @@ def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, d
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
-    with plot2.Report(module_output_area / 'report.pdf') as report:
-        loc_map = plot2.Location(datafiles / 'sim09' / 'img' / 'sim09.fits')
+    with plot.Report(module_output_area / 'report.pdf') as report:
+        loc_map = plot.Location(datafiles / 'sim09' / 'img' / 'sim09.fits')
         loc_map.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY', marker='1')
         loc_map.add('SExtractor++', multi_frame_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='3')
         report.add(loc_map)
 
-        dist = plot2.Distances(stuff_simulation_r)
+        dist = plot.Distances(stuff_simulation_r)
         dist.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY')
         dist.add('SExtractor++', multi_frame_catalog, 'world_centroid_alpha', 'world_centroid_delta')
         report.add(dist)
 
         for i in range(10):
-            mag_r = plot2.Magnitude(f'auto_mag:{i}', stuff_simulation_r)
+            mag_r = plot.Magnitude(f'auto_mag:{i}', stuff_simulation_r)
             mag_r.add(
                 'SExtractor2', reference_r,
                 'ALPHA_SKY', 'DELTA_SKY',
@@ -161,7 +161,7 @@ def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, d
             report.add(mag_r)
 
         for i in range(10):
-            flag_r = plot2.Flags(datafiles / 'sim09' / 'img' / 'sim09.fits')
+            flag_r = plot.Flags(datafiles / 'sim09' / 'img' / 'sim09.fits')
             flag_r.set1(
                 'SExtractor2', reference_r,
                 'ALPHA_SKY', 'DELTA_SKY', 'FLAGS'

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from astropy.table import Table
 
-from util import stuff, plot2
+from util import stuff, plot
 
 
 @pytest.fixture
@@ -62,18 +62,18 @@ def test_generate_report(modelfitting_catalog, reference, stuff_simulation, data
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
-    with plot2.Report(module_output_area / 'report.pdf') as report:
-        loc_map = plot2.Location(datafiles / 'sim09' / 'img' / 'sim09.fits')
+    with plot.Report(module_output_area / 'report.pdf') as report:
+        loc_map = plot.Location(datafiles / 'sim09' / 'img' / 'sim09.fits')
         loc_map.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY', marker='1')
         loc_map.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='3')
         report.add(loc_map)
 
-        dist = plot2.Distances(stuff_simulation)
+        dist = plot.Distances(stuff_simulation)
         dist.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY')
         dist.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta')
         report.add(dist)
 
-        mag_r = plot2.Magnitude('R', stuff_simulation)
+        mag_r = plot.Magnitude('R', stuff_simulation)
         mag_r.add(
             'SExtractor2',
             reference, 'ALPHA_SKY', 'DELTA_SKY', 'MAG_MODEL', 'MAGERR_MODEL',
