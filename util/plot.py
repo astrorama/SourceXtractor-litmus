@@ -132,6 +132,7 @@ class Magnitude(Plot):
         self.__ax_delta.set_ylabel('$\Delta$')
         self.__ax_delta.axhline(0, color='gray')
         self.__ax_delta.grid(True, linestyle=':')
+        self.__ax_delta.set_ylim(-1.1, 1.1)
 
         # Third plot: computed error
         self.__ax_err = self.__figure.add_subplot(gridspec.new_subplotspec((3, 0), 1), sharex=self.__ax_mag)
@@ -145,9 +146,15 @@ class Magnitude(Plot):
         source_mag = self.__mags[closest['source']]
         mag = get_column(catalog, mag_col)
         mag_err = get_column(catalog, mag_err_col)
+        delta_mag = mag - source_mag
         self.__ax_mag.scatter(source_mag, mag, label=label, marker=marker)
-        self.__ax_delta.scatter(source_mag, mag - source_mag, label=label, marker=marker)
+        delta_col = self.__ax_delta.scatter(source_mag, delta_mag, label=label, marker=marker)
         self.__ax_err.scatter(source_mag, mag_err, marker=marker)
+        # Mark there are some outside of the plot
+        delta_above = source_mag[delta_mag > 1.]
+        delta_below = source_mag[delta_mag < -1.]
+        self.__ax_delta.scatter(delta_above, np.ones(delta_above.shape), marker='^', c=delta_col.get_facecolor())
+        self.__ax_delta.scatter(delta_below, -np.ones(delta_below.shape), marker='v', c=delta_col.get_facecolor())
 
     def get_figures(self):
         self.__ax_mag.legend()
