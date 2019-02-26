@@ -30,6 +30,8 @@ def coadded_catalog(sextractorxx, datafiles, module_output_area, signal_to_noise
 
     catalog = Table.read(output_catalog)
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= signal_to_noise_ratio
+    for nan_col in ['isophotal_mag', 'auto_mag', 'isophotal_mag_err', 'auto_mag_err']:
+        catalog[nan_col][catalog[nan_col] >= 99.] = np.nan
     return np.sort(catalog[bright_filter], order=('world_centroid_alpha', 'world_centroid_delta'))
 
 
