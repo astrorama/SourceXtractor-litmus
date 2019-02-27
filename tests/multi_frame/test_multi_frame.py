@@ -140,8 +140,8 @@ def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, d
         report.add(loc_map)
 
         dist = plot.Distances(stuff_simulation_r)
-        dist.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY')
-        dist.add('SExtractor++', multi_frame_catalog, 'world_centroid_alpha', 'world_centroid_delta')
+        dist.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY', marker='o')
+        dist.add('SExtractor++', multi_frame_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='.')
         report.add(dist)
 
         for i in range(10):

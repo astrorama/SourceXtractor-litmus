@@ -78,8 +78,8 @@ def test_generate_report(modelfitting_catalog, stuff_simulation_r, stuff_simulat
         report.add(loc_map)
 
         dist = plot.Distances(stuff_simulation_r)
-        dist.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY')
-        dist.add('SExtractor2 (G)', reference_g, 'ALPHA_SKY', 'DELTA_SKY')
+        dist.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY', marker='o')
+        dist.add('SExtractor2 (G)', reference_g, 'ALPHA_SKY', 'DELTA_SKY', marker='.')
         dist.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta')
         report.add(dist)
 

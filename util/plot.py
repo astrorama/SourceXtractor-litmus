@@ -86,26 +86,70 @@ class Location(Plot):
 class Distances(Plot):
     def __init__(self, simulation):
         super(Distances, self).__init__()
+        self.__ra = np.append(simulation[0].ra, simulation[1].ra)
+        self.__dec = np.append(simulation[0].dec, simulation[1].dec)
+        self.__mag = np.append(simulation[0].mag, simulation[1].mag)
         self.__kdtree = simulation[2]
         self.__entries = []
 
-    def add(self, label, catalog, alpha, delta):
-        self.__entries.append((label, catalog[alpha], catalog[delta]))
+    def add(self, label, catalog, alpha_col, delta_col, marker):
+        self.__entries.append((label, catalog[alpha_col], catalog[delta_col], marker))
 
-    def get_figures(self):
+    def _plot_distances(self):
         fig = plt.figure(figsize=_page_size)
         nrows = len(self.__entries)
-        bins = 50
-        for i, (label, alpha, delta) in enumerate(self.__entries, start=1):
-            distances = []
-            for a, d in zip(alpha, delta):
-                d, _ = self.__kdtree.query([a, d], 1)
-                distances.append(d)
-            ax = fig.add_subplot(nrows, 1, i)
-            ax.set_title(f'Distances for {label}')
-            _, bins, _ = ax.hist(distances, bins=bins)
+        bins = 20
+        for i, (label, alpha, delta, _) in enumerate(self.__entries, start=0):
+            _, closest = self.__kdtree.query(np.column_stack([alpha, delta]), 1)
+            distances_alpha = np.abs(self.__ra[closest] - alpha)
+            distances_delta = np.abs(self.__dec[closest] - delta)
+            # Alpha
+            ax_a = fig.add_subplot(nrows, 2, 2 * i + 1)
+            ax_a.set_title(f'$\\Delta\\alpha$ for {label}')
+            _, bins, _ = ax_a.hist(distances_alpha, bins=bins)
+            # Delta
+            ax_d = fig.add_subplot(nrows, 2, 2 * (i + 1))
+            ax_d.set_title(f'$\\Delta\\delta$ for {label}')
+            _, bins, _ = ax_d.hist(distances_delta, bins=bins)
+
         fig.tight_layout()
-        return [fig]
+        return fig
+
+    def _plot_dist_vs_mag(self):
+        fig = plt.figure(figsize=_page_size)
+
+        ax_a = fig.add_subplot(2, 1, 1)
+        ax_a.set_title('$\\Delta\\alpha$ vs magnitude')
+        ax_a.set_xlabel('Magnitude')
+        ax_a.set_ylabel('$\\Delta\\alpha$')
+        ax_a.grid(True)
+
+        ax_d = fig.add_subplot(2, 1, 2, sharex=ax_a)
+        ax_d.set_title('$\\Delta\\delta$ vs magnitude')
+        ax_d.set_xlabel('Magnitude')
+        ax_d.set_ylabel('$\\Delta\\delta$')
+        ax_d.grid(True)
+
+        max_dist = 0
+
+        for i, (label, alpha, delta, marker) in enumerate(self.__entries, start=0):
+            _, closest = self.__kdtree.query(np.column_stack([alpha, delta]), 1)
+            distances_alpha = self.__ra[closest] - alpha
+            distances_delta = self.__dec[closest] - delta
+
+            max_dist = np.max([max_dist, np.abs(distances_alpha).max(), np.abs(distances_delta).max()])
+
+            ax_a.scatter(self.__mag[closest], distances_alpha, label=label, marker=marker)
+            ax_d.scatter(self.__mag[closest], distances_delta, label=label, marker=marker)
+
+        ax_a.set_ylim(max_dist / 2, -max_dist / 2)
+        ax_d.set_ylim(max_dist / 2, -max_dist / 2)
+        ax_a.legend()
+        fig.tight_layout()
+        return fig
+
+    def get_figures(self):
+        return [self._plot_distances(), self._plot_dist_vs_mag()]
 
 
 class Magnitude(Plot):
@@ -332,8 +376,8 @@ def generate_report(output, simulation, image, target, reference):
         report.add(loc_map)
 
         dist = Distances(simulation)
-        dist.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY')
-        dist.add('SExtractor++', target, 'world_centroid_alpha', 'world_centroid_delta')
+        dist.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY', marker='o')
+        dist.add('SExtractor++', target, 'world_centroid_alpha', 'world_centroid_delta', marker='.')
         report.add(dist)
 
         flux_iso = Scatter('FLUX_ISO vs isophotal_flux', simulation)

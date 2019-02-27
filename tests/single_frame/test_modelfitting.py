@@ -69,8 +69,8 @@ def test_generate_report(modelfitting_catalog, reference, stuff_simulation, data
         report.add(loc_map)
 
         dist = plot.Distances(stuff_simulation)
-        dist.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY')
-        dist.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta')
+        dist.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY', marker='o')
+        dist.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='.')
         report.add(dist)
 
         mag_r = plot.Magnitude('R', stuff_simulation)
