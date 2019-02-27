@@ -1,4 +1,6 @@
 import abc
+import logging
+
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -8,6 +10,7 @@ from matplotlib import colors
 
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.gridspec import GridSpec
+from scipy.spatial import KDTree
 from scipy.stats import ks_2samp
 
 from util import stuff
@@ -95,7 +98,7 @@ class Location(Plot):
 
     def add(self, label, catalog, alpha, delta, marker=None):
         pix_coord = self.__wcs.all_world2pix(catalog[alpha], catalog[delta], 0)
-        self.__ax.scatter(pix_coord[0], pix_coord[1], marker=marker, label=label, alpha=0.8,)
+        self.__ax.scatter(pix_coord[0], pix_coord[1], marker=marker, label=label, alpha=0.8, )
 
     def get_figures(self):
         self.__ax.legend()
@@ -387,6 +390,90 @@ class CumulativeHistogram(Plot):
         return [self.__figure]
 
 
+class Completeness(Plot):
+
+    def __get_within_filter(self, ra, dec):
+        xy = self.__wcs.all_world2pix(np.column_stack([ra, dec]), 1)
+        x = xy[:, 0]
+        y = xy[:, 1]
+        return x, y, (0 <= x) & (x < self.__width) & (0 <= y) & (y < self.__height)
+
+    def __init__(self, image, simulation, max_dist=np.inf):
+        super(Completeness, self).__init__()
+        hdu = fits.open(image)[0]
+        self.__width = hdu.data.shape[0]
+        self.__height = hdu.data.shape[1]
+        self.__wcs = WCS(hdu.header)
+        self.__max_dist = max_dist
+
+        star_x, star_y, star_filter = self.__get_within_filter(simulation[0].ra, simulation[0].dec)
+        galx_x, galx_y, galx_filter = self.__get_within_filter(simulation[1].ra, simulation[1].dec)
+
+        self.__stars = simulation[0].mag[star_filter]
+        self.__galaxies = simulation[1].mag[galx_filter]
+
+        all_x = np.append(star_x[star_filter], galx_x[galx_filter])
+        all_y = np.append(star_y[star_filter], galx_y[galx_filter])
+
+        self.__kdtree = KDTree(np.column_stack([all_x, all_y]))
+
+        min_mag = np.floor(np.min(np.append(self.__stars, self.__galaxies)))
+        max_mag = np.ceil(np.max(np.append(self.__stars, self.__galaxies)))
+        self.__edges = np.arange(min_mag - 0.5, max_mag + 0.5, 1)
+
+        self.__stars_bins, _ = np.histogram(self.__stars, bins=self.__edges)
+        self.__galaxies_bins, _ = np.histogram(self.__galaxies, bins=self.__edges)
+
+        self.__star_recall = []
+        self.__galaxy_recall = []
+
+    def add(self, label, catalog, x_col, y_col):
+        d, i = self.__kdtree.query(
+            np.column_stack([catalog[x_col], catalog[y_col]])
+        )
+        found = np.unique(i[d < self.__max_dist])
+        # Found contains now the index of the "real" stars and galaxies with at least one match
+        # If the index is < len(self.__stars), it is a star
+        stars_found = found[found < len(self.__stars)]
+        stars_hist, _ = np.histogram(self.__stars[stars_found], bins=self.__edges)
+        stars_recall = stars_hist / self.__stars_bins
+        # If the index is > len(self.__stars, it is a galaxy)
+        galaxies_found = found[found >= len(self.__stars)] - len(self.__stars)
+        galaxies_hist, _ = np.histogram(self.__galaxies[galaxies_found], bins=self.__edges)
+        galaxies_recall = galaxies_hist / self.__galaxies_bins
+        # Store recalls
+        self.__star_recall.append((label, (stars_recall, self.__stars_bins)))
+        self.__galaxy_recall.append((label, (galaxies_recall, self.__galaxies_bins)))
+
+    def __plot_recall(self, ax, edges, recall_list):
+        ax.set_ylim(0., 100.)
+        bin_centers = 0.5 * (edges[1:] + edges[:-1])
+        for label, recall in recall_list:
+            barplot = ax.bar(bin_centers, recall[0] * 100, alpha=0.5, label=label)
+            for r, c in zip(barplot.patches, recall[1]):
+                ax.text(r.get_x() + r.get_width() / 3, r.get_y() + 10, f'({c})')
+
+    def get_figures(self):
+        fig = plt.figure(figsize=_page_size)
+
+        ax_stars = fig.add_subplot(2, 1, 1)
+        ax_stars.set_title('Star recall')
+        ax_stars.set_ylabel('%')
+        self.__plot_recall(ax_stars, self.__edges, self.__star_recall)
+        ax_stars.legend()
+        ax_stars.grid(True)
+
+        ax_galaxies = fig.add_subplot(2, 1, 2, sharex=ax_stars)
+        ax_galaxies.set_title('Galaxy recall')
+        ax_galaxies.set_ylabel('%')
+        self.__plot_recall(ax_galaxies, self.__edges, self.__galaxy_recall)
+        ax_galaxies.legend()
+        ax_galaxies.grid(True)
+
+        fig.tight_layout()
+        return [fig]
+
+
 def generate_report(output, simulation, image, target, reference):
     with Report(output) as report:
         loc_map = Location(image, simulation)
@@ -398,6 +485,11 @@ def generate_report(output, simulation, image, target, reference):
         dist.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY', marker='o')
         dist.add('SExtractor++', target, 'world_centroid_alpha', 'world_centroid_delta', marker='.')
         report.add(dist)
+
+        completeness = Completeness(image, simulation)
+        completeness.add('SExtractor2', reference, 'X_IMAGE', 'Y_IMAGE')
+        completeness.add('SExtractor++', target, 'pixel_centroid_x', 'pixel_centroid_y')
+        report.add(completeness)
 
         flux_iso = Scatter('FLUX_ISO vs isophotal_flux', simulation)
         flux_iso.add(
