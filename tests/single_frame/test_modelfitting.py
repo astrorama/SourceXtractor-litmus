@@ -63,7 +63,7 @@ def test_generate_report(modelfitting_catalog, reference, stuff_simulation, data
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     with plot.Report(module_output_area / 'report.pdf') as report:
-        loc_map = plot.Location(datafiles / 'sim09' / 'img' / 'sim09.fits')
+        loc_map = plot.Location(datafiles / 'sim09' / 'img' / 'sim09.fits', stuff_simulation)
         loc_map.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY', marker='1')
         loc_map.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='3')
         report.add(loc_map)

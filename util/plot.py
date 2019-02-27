@@ -15,7 +15,7 @@ from . import get_column
 
 _page_size = (11.7, 8.3)
 _img_cmap = plt.get_cmap('Greys_r')
-_img_norm = colors.SymLogNorm(10)
+_img_norm = colors.SymLogNorm(100, linscale=2)
 
 _flag_style = {
     stuff.SourceFlags.BIASED: ('red', '1'),
@@ -64,19 +64,38 @@ class Report(object):
 
 
 class Location(Plot):
-    def __init__(self, image):
+    def __init__(self, image, simulation):
         super(Location, self).__init__()
         hdu = fits.open(image)[0]
         self.__image = hdu.data
+        w, h = hdu.data.shape
         self.__wcs = WCS(hdu.header)
         self.__figure = plt.figure(figsize=_page_size)
         self.__ax = self.__figure.add_subplot(1, 1, 1, projection=self.__wcs)
         self.__ax.set_title('Location')
         self.__ax.imshow(self.__image, cmap=_img_cmap, norm=_img_norm)
+        # Stars
+        mag_cmap = plt.get_cmap('magma_r')
+        pix_coord = self.__wcs.all_world2pix(simulation[0].ra, simulation[0].dec, 0)
+        pix_filter = (0 <= pix_coord[0]) & (pix_coord[0] < w) & (0 <= pix_coord[1]) & (pix_coord[1] < h)
+        self.__ax.scatter(
+            pix_coord[0][pix_filter], pix_coord[1][pix_filter],
+            c=simulation[0].mag[pix_filter], marker='o',
+            cmap=mag_cmap
+        )
+        pix_coord = self.__wcs.all_world2pix(simulation[1].ra, simulation[1].dec, 0)
+        pix_filter = (0 <= pix_coord[0]) & (pix_coord[0] < w) & (0 <= pix_coord[1]) & (pix_coord[1] < h)
+        cax = self.__ax.scatter(
+            pix_coord[0][pix_filter], pix_coord[1][pix_filter],
+            c=simulation[1].mag[pix_filter], marker='h',
+            cmap=mag_cmap
+        )
+        cbar = self.__figure.colorbar(cax)
+        cbar.ax.set_ylabel('Magnitude (truth)')
 
     def add(self, label, catalog, alpha, delta, marker=None):
         pix_coord = self.__wcs.all_world2pix(catalog[alpha], catalog[delta], 0)
-        self.__ax.scatter(pix_coord[0], pix_coord[1], marker=marker, label=label)
+        self.__ax.scatter(pix_coord[0], pix_coord[1], marker=marker, label=label, alpha=0.8,)
 
     def get_figures(self):
         self.__ax.legend()
@@ -370,9 +389,9 @@ class CumulativeHistogram(Plot):
 
 def generate_report(output, simulation, image, target, reference):
     with Report(output) as report:
-        loc_map = Location(image)
-        loc_map.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY', marker='o')
-        loc_map.add('SExtractor++', target, 'world_centroid_alpha', 'world_centroid_delta', marker='.')
+        loc_map = Location(image, simulation)
+        loc_map.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY', marker='1')
+        loc_map.add('SExtractor++', target, 'world_centroid_alpha', 'world_centroid_delta', marker='2')
         report.add(loc_map)
 
         dist = Distances(simulation)
