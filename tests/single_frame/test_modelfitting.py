@@ -19,7 +19,7 @@ def modelfitting_catalog(sextractorxx, datafiles, module_output_area, signal_to_
     output_catalog = module_output_area / 'output.fits'
     if not os.path.exists(output_catalog):
         run = sextractorxx(
-            output_properties='SourceIDs,WorldCentroid,IsophotalFlux,FlexibleModelFitting',
+            output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting',
             detection_image=datafiles / 'sim09' / 'img' / 'sim09_r_01.fits',
             python_config_file=datafiles / 'sim09' / 'sim09_single_modelfitting.py'
         )
@@ -27,8 +27,8 @@ def modelfitting_catalog(sextractorxx, datafiles, module_output_area, signal_to_
 
     catalog = Table.read(output_catalog)
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= signal_to_noise_ratio
-    catalog['flux_r_err'][catalog['flux_r_err'] >= 99.] = np.nan
-    catalog['mag_r_err'][catalog['mag_r_err'] >= 99.] = np.nan
+    catalog['model_flux_r_err'][catalog['model_flux_r_err'] >= 99.] = np.nan
+    catalog['model_mag_r_err'][catalog['model_mag_r_err'] >= 99.] = np.nan
     return np.sort(catalog[bright_filter], order=('world_centroid_alpha', 'world_centroid_delta'))
 
 
@@ -50,7 +50,7 @@ def test_magnitude(modelfitting_catalog, reference, stuff_simulation, tolerances
     target_closest = stuff.get_closest(modelfitting_catalog, kdtree)
     ref_closest = stuff.get_closest(reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY')
 
-    target_mag = modelfitting_catalog['mag_r']
+    target_mag = modelfitting_catalog['model_mag_r']
     ref_mag = reference['MAG_MODEL']
     mag_diff = np.abs((expected_mags[target_closest['source']] - target_mag))
     ref_diff = np.abs((expected_mags[ref_closest['source']] - ref_mag))
@@ -62,16 +62,16 @@ def test_generate_report(modelfitting_catalog, reference, stuff_simulation, data
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
-    image = datafiles / 'sim09' / 'img' / 'sim09.fits'
+    image = datafiles / 'sim09' / 'img' / 'sim09_r_01.fits'
     with plot.Report(module_output_area / 'report.pdf') as report:
         loc_map = plot.Location(image, stuff_simulation)
-        loc_map.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY', marker='1')
-        loc_map.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='3')
+        loc_map.add('SExtractor2', reference, 'XMODEL_IMAGE', 'YMODEL_IMAGE', marker='1')
+        loc_map.add('SExtractor++', modelfitting_catalog, 'model_x', 'model_y', marker='2')
         report.add(loc_map)
 
         dist = plot.Distances(image, stuff_simulation)
-        dist.add('SExtractor2', reference, 'ALPHA_SKY', 'DELTA_SKY', marker='o')
-        dist.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='.')
+        dist.add('SExtractor2', reference, 'XMODEL_IMAGE', 'YMODEL_IMAGE', marker='o')
+        dist.add('SExtractor++', modelfitting_catalog, 'model_x', 'model_y', marker='.')
         report.add(dist)
 
         mag_r = plot.Magnitude('R', stuff_simulation)
@@ -82,7 +82,7 @@ def test_generate_report(modelfitting_catalog, reference, stuff_simulation, data
         )
         mag_r.add(
             'SExtractor++',
-            modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', 'mag_r', 'mag_r_err',
+            modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', 'model_mag_r', 'model_mag_r_err',
             marker='.'
         )
         report.add(mag_r)
