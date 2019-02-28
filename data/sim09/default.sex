@@ -125,7 +125,7 @@ INTERP_TYPE      ALL            # Interpolation type: NONE, VAR_ONLY or ALL
 
 #--------------------------- Experimental Stuff -----------------------------
 
-PSF_NAME         sim09_r_01.psf # File containing the PSF model
+PSF_NAME         psf/sim09_r_01.psf # File containing the PSF model
 PSF_NMAX         1              # Max.number of PSFs fitted simultaneously
 PATTERN_TYPE     RINGS-HARMONIC # can RINGS-QUADPOLE, RINGS-OCTOPOLE,
                                 # RINGS-HARMONICS or GAUSS-LAGUERRE

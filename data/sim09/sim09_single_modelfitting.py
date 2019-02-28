@@ -13,7 +13,7 @@ measurement_img = load_fits_image(
 )
 measurement_group = MeasurementGroup(ImageGroup(images=[measurement_img]))
 
-alpha, delta = get_pos_parameters()
+pixel_x, pixel_y = get_pos_parameters()
 total_flux = get_flux_parameter()
 
 angle = FreeParameter(lambda o: o.get_angle(), Range((-2 * 3.14159, 2 * 3.14159), RangeType.LINEAR))
@@ -23,12 +23,12 @@ bulge_disk = FreeParameter(.5, Range((0, 1), RangeType.LINEAR))
 flux = DependentParameter(lambda f, r: f * r, total_flux, bulge_disk)
 mag = DependentParameter(lambda f: -2.5 * np.log10(f) + MAG_ZEROPOINT, flux)
 
-add_model(measurement_group, ExponentialModel(alpha, delta, flux, rad, ratio, angle))
+add_model(measurement_group, ExponentialModel(pixel_x, pixel_y, flux, rad, ratio, angle))
 
-add_output_column('alpha', alpha)
-add_output_column('delta', delta)
-add_output_column('flux_r', flux)
-add_output_column('mag_r', mag)
+add_output_column('model_x', pixel_x)
+add_output_column('model_y', pixel_y)
+add_output_column('model_flux_r', flux)
+add_output_column('model_mag_r', mag)
 
 print_model_fitting_info(measurement_group)
 print_output_columns()
