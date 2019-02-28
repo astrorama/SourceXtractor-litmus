@@ -17,7 +17,7 @@ top.split(ByKeyword('FILTER'))
 
 measurement_group = MeasurementGroup(top)
 
-alpha, delta = get_pos_parameters()
+pixel_x, pixel_y = get_pos_parameters()
 ratio = FreeParameter(1, Range((0, 10), RangeType.LINEAR))
 rad = FreeParameter(lambda o: o.get_radius(), Range(lambda v, o: (.01 * v, 100 * v), RangeType.EXPONENTIAL))
 angle = FreeParameter(lambda o: o.get_angle(), Range((-2 * 3.14159, 2 * 3.14159), RangeType.LINEAR))
@@ -28,16 +28,16 @@ for band, group in top:
     bulge_disk = FreeParameter(.5, Range((0, 1), RangeType.LINEAR))
     flux = DependentParameter(lambda f, r: f * r, iso_flux, bulge_disk)
     mag = DependentParameter(lambda f: -2.5 * np.log10(f) + MAG_ZEROPOINT, flux)
-    add_model(group, ExponentialModel(alpha, delta, flux, rad, ratio, angle))
+    add_model(group, ExponentialModel(pixel_x, pixel_y, flux, rad, ratio, angle))
 
-    add_output_column('flux_' + band, flux)
-    add_output_column('mag_' + band, mag)
-    add_output_column('bulge_' + band, bulge_disk)
+    add_output_column('model_flux_' + band, flux)
+    add_output_column('model_mag_' + band, mag)
+    add_output_column('model_bulge_' + band, bulge_disk)
 
-add_output_column('alpha', alpha)
-add_output_column('delta', delta)
-add_output_column('rad', rad)
-add_output_column('angle', angle)
+add_output_column('model_x', pixel_x)
+add_output_column('model_y', pixel_y)
+add_output_column('model_rad', rad)
+add_output_column('model_angle', angle)
 
 print_model_fitting_info(top)
 print_output_columns()

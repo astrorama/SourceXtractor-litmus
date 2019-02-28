@@ -45,7 +45,7 @@ def _get_sources_within_image(img, wcs, ra, dec, mag):
     w, h = img.shape
     pix_coord = wcs.all_world2pix(ra, dec, 1)
     # Open a bit, since the center may be outside of the image, but have an effect
-    inside_image = (pix_coord[0] >= -10) & (pix_coord[0] < w + 10) & (pix_coord[1] >= -10) & (pix_coord[1] < h + 10)
+    inside_image = (pix_coord[0] >= -10) & (pix_coord[0] < h + 10) & (pix_coord[1] >= -10) & (pix_coord[1] < w + 10)
     pix_x = pix_coord[0][inside_image]
     pix_y = pix_coord[1][inside_image]
     mag = mag[inside_image]
@@ -187,8 +187,9 @@ class Distances(Plot):
             ax_a.scatter(self.__mag[closest], dist_x, label=label, marker=marker)
             ax_d.scatter(self.__mag[closest], dist_y, label=label, marker=marker)
 
-        ax_a.set_ylim(max_dist / 2, -max_dist / 2)
-        ax_d.set_ylim(max_dist / 2, -max_dist / 2)
+        max_dist = np.min([max_dist / 2, 5])
+        ax_a.set_ylim(max_dist, -max_dist)
+        ax_d.set_ylim(max_dist, -max_dist)
         ax_a.legend()
         fig.tight_layout()
         return fig
@@ -331,9 +332,11 @@ class Flags(Plot):
         return [self.__figure]
 
 
-class CumulativeHistogram(Plot):
-    def __init__(self, simulation, nbins=50):
-        super(CumulativeHistogram, self).__init__()
+class Histogram(Plot):
+    def __init__(self, image, simulation, nbins=20):
+        super(Histogram, self).__init__()
+        hdu = fits.open(image)[0]
+        wcs = WCS(hdu.header)
         self.__stars = simulation[0]
         self.__galaxies = simulation[1]
         self.__kdtree = simulation[2]
@@ -341,25 +344,30 @@ class CumulativeHistogram(Plot):
         self.__galaxy_dists = []
         self.__figure = plt.Figure(figsize=_page_size)
 
+        _, _, stars_mag = _get_sources_within_image(
+            hdu.data, wcs, simulation[0].ra, simulation[0].dec, simulation[0].mag
+        )
+        _, _, galx_mag = _get_sources_within_image(
+            hdu.data, wcs, simulation[1].ra, simulation[1].dec, simulation[1].mag
+        )
+
         self.__ax_stars = self.__figure.add_subplot(2, 1, 1)
         self.__ax_stars.grid(True)
-        self.__ax_stars.set_title('Stars CDF')
+        self.__ax_stars.set_title('Stars')
         self.__ax_stars.set_xlabel('Magnitude')
 
         _, self.__bins, _ = self.__ax_stars.hist(
-            self.__stars.mag, bins=nbins,
-            density=True, cumulative=True,
+            stars_mag, bins=nbins,
             label='Truth'
         )
 
         self.__ax_galaxies = self.__figure.add_subplot(2, 1, 2, sharex=self.__ax_stars)
         self.__ax_galaxies.grid(True)
-        self.__ax_galaxies.set_title('Galaxies CDF')
+        self.__ax_galaxies.set_title('Galaxies')
         self.__ax_galaxies.set_xlabel('Magnitude')
 
         self.__ax_galaxies.hist(
-            self.__galaxies.mag, bins=self.__bins,
-            density=True, cumulative=True,
+            galx_mag, bins=self.__bins,
             label='Truth'
         )
 
@@ -371,13 +379,11 @@ class CumulativeHistogram(Plot):
 
         self.__ax_stars.hist(
             mag[closest['catalog'][star_filter]],
-            density=True, cumulative=True,
             bins=self.__bins, histtype='step',
             label=label
         )
         self.__ax_galaxies.hist(
             mag[closest['catalog'][galaxy_filter]],
-            density=True, cumulative=True,
             bins=self.__bins, histtype='step',
             label=label
         )
@@ -497,15 +503,16 @@ class Completeness(Plot):
         fig_recall = plt.figure(figsize=_page_size)
 
         ax_stars = fig_recall.add_subplot(3, 1, 1)
-        ax_stars.set_title(f'Star recall ($\\Delta < {self.__max_dist}$)')
+        ax_stars.set_title(f'Star recall ($\\Delta < {self.__max_dist}$px)')
         self.__plot_recall(ax_stars, self.__edges, self.__star_recall)
 
         ax_galaxies = fig_recall.add_subplot(3, 1, 2, sharex=ax_stars)
-        ax_galaxies.set_title(f'Galaxy recall ($\\Delta < {self.__max_dist}$)')
+        ax_galaxies.set_title(f'Galaxy recall ($\\Delta < {self.__max_dist}$px)')
         self.__plot_recall(ax_galaxies, self.__edges, self.__galaxy_recall)
 
         ax_bad_measured = fig_recall.add_subplot(3, 1, 3, sharex=ax_stars)
-        ax_bad_measured.set_title(f'Percent of detections at $\\Delta \\geq {self.__max_dist}$, binned by measured magnitude')
+        ax_bad_measured.set_title(
+            f'Percent of detections at $\\Delta \\geq {self.__max_dist}$px, binned by measured magnitude')
         self.__plot_recall(ax_bad_measured, self.__edges, self.__bad_detection)
 
         fig_recall.tight_layout()
@@ -574,7 +581,7 @@ def generate_report(output, simulation, image, target, reference):
         )
         report.add(mag_iso)
 
-        iso_hist = CumulativeHistogram(simulation)
+        iso_hist = Histogram(image, simulation)
         iso_hist.add(
             'SExtractor2 MAG_ISO', reference,
             'ALPHA_SKY', 'DELTA_SKY',
@@ -602,7 +609,7 @@ def generate_report(output, simulation, image, target, reference):
         )
         report.add(mag_auto)
 
-        auto_hist = CumulativeHistogram(simulation)
+        auto_hist = Histogram(image, simulation)
         auto_hist.add(
             'SExtractor2 MAG_AUTO', reference,
             'ALPHA_SKY', 'DELTA_SKY',
@@ -618,7 +625,7 @@ def generate_report(output, simulation, image, target, reference):
         # Try apertures columns
         if 'aperture_mag' in target.dtype.names:
             target_aperture_mag = target['aperture_mag']
-            aper_hist = CumulativeHistogram(simulation)
+            aper_hist = Histogram(image, simulation)
             n_aper = target_aperture_mag.shape[2]
             for i in range(n_aper):
                 aper_hist.add(

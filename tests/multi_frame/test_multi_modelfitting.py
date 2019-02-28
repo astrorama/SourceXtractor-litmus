@@ -31,10 +31,10 @@ def modelfitting_catalog(sextractorxx, datafiles, module_output_area, signal_to_
 
     catalog = Table.read(output_catalog)
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= signal_to_noise_ratio
-    catalog['flux_r_err'][catalog['flux_r_err'] >= 99.] = np.nan
-    catalog['mag_r_err'][catalog['mag_r_err'] >= 99.] = np.nan
-    catalog['flux_g_err'][catalog['flux_g_err'] >= 99.] = np.nan
-    catalog['mag_g_err'][catalog['mag_g_err'] >= 99.] = np.nan
+    catalog['model_flux_r_err'][catalog['model_flux_r_err'] >= 99.] = np.nan
+    catalog['model_mag_r_err'][catalog['model_mag_r_err'] >= 99.] = np.nan
+    catalog['model_flux_g_err'][catalog['model_flux_g_err'] >= 99.] = np.nan
+    catalog['model_mag_g_err'][catalog['model_mag_g_err'] >= 99.] = np.nan
     return np.sort(catalog[bright_filter], order=('world_centroid_alpha', 'world_centroid_delta'))
 
 
@@ -51,8 +51,8 @@ def test_magnitude(modelfitting_catalog, stuff_simulation_r, stuff_simulation_g,
     target_closest_r = stuff.get_closest(modelfitting_catalog, kdtree_r)
     target_closest_g = stuff.get_closest(modelfitting_catalog, kdtree_g)
 
-    target_mag_r = modelfitting_catalog['mag_r']
-    target_mag_g = modelfitting_catalog['mag_g']
+    target_mag_r = modelfitting_catalog['model_mag_r']
+    target_mag_g = modelfitting_catalog['model_mag_g']
 
     assert np.isclose(
         target_mag_r, expected_mags_r[target_closest_r['source']],
@@ -71,17 +71,23 @@ def test_generate_report(modelfitting_catalog, stuff_simulation_r, stuff_simulat
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     image = datafiles / 'sim09' / 'img' / 'sim09.fits'
+    image_r =datafiles / 'sim09' / 'img' / 'sim09_r.fits'
+    image_g = datafiles / 'sim09' / 'img' / 'sim09_g.fits'
     with plot.Report(module_output_area / 'report.pdf') as report:
         loc_map = plot.Location(image, stuff_simulation_r)
-        loc_map.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY', marker='1')
-        loc_map.add('SExtractor2 (G)', reference_g, 'ALPHA_SKY', 'DELTA_SKY', marker='2')
-        loc_map.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='3')
+        loc_map.add('SExtractor++', modelfitting_catalog, 'model_x', 'model_y', marker='3')
         report.add(loc_map)
 
-        dist = plot.Distances(image, stuff_simulation_r)
-        dist.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY', marker='o')
-        dist.add('SExtractor2 (G)', reference_g, 'ALPHA_SKY', 'DELTA_SKY', marker='h')
-        dist.add('SExtractor++', modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='.')
+        dist_r = plot.Distances(image_r, stuff_simulation_r)
+        dist_r.add('SExtractor2 (R)', reference_r, 'XMODEL_IMAGE', 'YMODEL_IMAGE', marker='o')
+        report.add(dist_r)
+
+        dist_g = plot.Distances(image_g, stuff_simulation_g)
+        dist_g.add('SExtractor2 (G)', reference_g, 'XMODEL_IMAGE', 'YMODEL_IMAGE', marker='h')
+        report.add(dist_g)
+
+        dist = plot.Distances(image, stuff_simulation_g)
+        dist.add('SExtractor++', modelfitting_catalog, 'model_x', 'model_y', marker='.')
         report.add(dist)
 
         mag_r = plot.Magnitude('R', stuff_simulation_r)
@@ -92,7 +98,7 @@ def test_generate_report(modelfitting_catalog, stuff_simulation_r, stuff_simulat
         )
         mag_r.add(
             'SExtractor++',
-            modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', 'mag_r', 'mag_r_err',
+            modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', 'model_mag_r', 'model_mag_r_err',
             marker='.'
         )
         report.add(mag_r)
@@ -105,7 +111,7 @@ def test_generate_report(modelfitting_catalog, stuff_simulation_r, stuff_simulat
         )
         mag_g.add(
             'SExtractor++',
-            modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', 'mag_r', 'mag_r_err',
+            modelfitting_catalog, 'world_centroid_alpha', 'world_centroid_delta', 'model_mag_r', 'model_mag_r_err',
             marker='.'
         )
         report.add(mag_g)

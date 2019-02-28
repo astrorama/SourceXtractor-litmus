@@ -133,16 +133,16 @@ def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, d
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
-    image = datafiles / 'sim09' / 'img' / 'sim09.fits'
+    image = datafiles / 'sim09' / 'img' / 'sim09_r.fits'
     with plot.Report(module_output_area / 'report.pdf') as report:
         loc_map = plot.Location(image, stuff_simulation_r)
-        loc_map.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY', marker='1')
-        loc_map.add('SExtractor++', multi_frame_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='3')
+        loc_map.add('SExtractor2 (R)', reference_r, 'X_IMAGE', 'Y_IMAGE', marker='1')
+        loc_map.add('SExtractor++', multi_frame_catalog, 'pixel_centroid_x', 'pixel_centroid_y', marker='2')
         report.add(loc_map)
 
         dist = plot.Distances(image, stuff_simulation_r)
-        dist.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY', marker='o')
-        dist.add('SExtractor++', multi_frame_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='.')
+        dist.add('SExtractor2 (R)', reference_r, 'X_IMAGE', 'Y_IMAGE', marker='o')
+        dist.add('SExtractor++', multi_frame_catalog, 'pixel_centroid_x', 'pixel_centroid_y', marker='.')
         report.add(dist)
 
         for i in range(10):
