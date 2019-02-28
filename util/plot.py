@@ -352,7 +352,7 @@ class Histogram(Plot):
         )
 
         self.__ax_stars = self.__figure.add_subplot(2, 1, 1)
-        self.__ax_stars.grid(True)
+        self.__ax_stars.yaxis.grid(True)
         self.__ax_stars.set_title('Stars')
         self.__ax_stars.set_xlabel('Magnitude')
 
@@ -362,7 +362,7 @@ class Histogram(Plot):
         )
 
         self.__ax_galaxies = self.__figure.add_subplot(2, 1, 2, sharex=self.__ax_stars)
-        self.__ax_galaxies.grid(True)
+        self.__ax_galaxies.yaxis.grid(True)
         self.__ax_galaxies.set_title('Galaxies')
         self.__ax_galaxies.set_xlabel('Magnitude')
 
@@ -494,14 +494,14 @@ class Completeness(Plot):
                 ax.text(b.get_x() + b.get_width() / 2.5, b.get_y() + 10, str(r))
         ax.set_ylabel('%')
         ax.legend()
-        ax.grid(True)
+        ax.yaxis.grid(True)
 
     def __plot_false(self, ax, edges, false_list):
         bin_centers = 0.5 * (edges[1:] + edges[:-1])
         for label, count in false_list:
             ax.bar(bin_centers, count, alpha=0.5, label=label)
         ax.legend()
-        ax.grid(True)
+        ax.yaxis.grid(True)
 
     def get_figures(self):
         fig_recall = plt.figure(figsize=_page_size)
