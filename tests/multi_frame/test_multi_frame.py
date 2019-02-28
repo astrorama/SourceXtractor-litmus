@@ -133,13 +133,14 @@ def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, d
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
+    image = datafiles / 'sim09' / 'img' / 'sim09.fits'
     with plot.Report(module_output_area / 'report.pdf') as report:
-        loc_map = plot.Location(datafiles / 'sim09' / 'img' / 'sim09.fits', stuff_simulation_r)
+        loc_map = plot.Location(image, stuff_simulation_r)
         loc_map.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY', marker='1')
         loc_map.add('SExtractor++', multi_frame_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='3')
         report.add(loc_map)
 
-        dist = plot.Distances(stuff_simulation_r)
+        dist = plot.Distances(image, stuff_simulation_r)
         dist.add('SExtractor2 (R)', reference_r, 'ALPHA_SKY', 'DELTA_SKY', marker='o')
         dist.add('SExtractor++', multi_frame_catalog, 'world_centroid_alpha', 'world_centroid_delta', marker='.')
         report.add(dist)
