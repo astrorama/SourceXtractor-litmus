@@ -321,6 +321,7 @@ class Flags(Plot):
         ax.legend()
 
     def set1(self, *args, **kwargs):
+        kwargs['is_sex2'] = True
         self.__set(self.__ax1, *args, **kwargs)
 
     def set2(self, *args, **kwargs):
