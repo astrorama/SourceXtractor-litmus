@@ -1,5 +1,6 @@
 import abc
 import logging
+from copy import deepcopy
 
 import numpy as np
 
@@ -18,7 +19,7 @@ from . import get_column
 
 _page_size = (11.7, 8.3)
 _img_cmap = plt.get_cmap('Greys_r')
-_img_norm = colors.SymLogNorm(100, linscale=2)
+_img_norm = colors.SymLogNorm(1000, linscale=10)
 
 _flag_style = {
     stuff.SourceFlags.BIASED: ('red', '1'),
@@ -38,6 +39,17 @@ _sex2_flag_style = {
     stuff.Sex2SourceFlags.DEBLENDING_OVERFLOW: ('crimson', 'D'),
     stuff.Sex2SourceFlags.EXTRACTION_OVERFLOW: ('crimson', 'X'),
 }
+
+
+def _get_source_filter(img, wcs, ra, dec, mag):
+    w, h = img.shape
+    pix_coord = wcs.all_world2pix(ra, dec, 0)
+    inside_image = (0 <= pix_coord[0]) & (pix_coord[0] < w) & (0 <= pix_coord[1]) & (pix_coord[1] < h)
+    pix_x = pix_coord[0][inside_image].astype(np.int)
+    pix_y = pix_coord[1][inside_image].astype(np.int)
+    mag = mag[inside_image]
+    not_zero_center = (img[pix_x, pix_y] != 0.)
+    return pix_x[not_zero_center], pix_y[not_zero_center], mag[not_zero_center]
 
 
 class Plot(object):
@@ -67,30 +79,31 @@ class Report(object):
 
 
 class Location(Plot):
+
     def __init__(self, image, simulation):
         super(Location, self).__init__()
         hdu = fits.open(image)[0]
         self.__image = hdu.data
-        w, h = hdu.data.shape
         self.__wcs = WCS(hdu.header)
         self.__figure = plt.figure(figsize=_page_size)
         self.__ax = self.__figure.add_subplot(1, 1, 1, projection=self.__wcs)
         self.__ax.set_title('Location')
-        self.__ax.imshow(self.__image, cmap=_img_cmap, norm=_img_norm)
+        self.__ax.imshow(self.__image, cmap=_img_cmap, norm=deepcopy(_img_norm))
         # Stars
         mag_cmap = plt.get_cmap('magma_r')
-        pix_coord = self.__wcs.all_world2pix(simulation[0].ra, simulation[0].dec, 0)
-        pix_filter = (0 <= pix_coord[0]) & (pix_coord[0] < w) & (0 <= pix_coord[1]) & (pix_coord[1] < h)
+        stars_x, stars_y, stars_mag = _get_source_filter(
+            self.__image, self.__wcs, simulation[0].ra, simulation[0].dec, simulation[0].mag
+        )
         self.__ax.scatter(
-            pix_coord[0][pix_filter], pix_coord[1][pix_filter],
-            c=simulation[0].mag[pix_filter], marker='o',
+            stars_x, stars_y, c=stars_mag, marker='o',
             cmap=mag_cmap
         )
-        pix_coord = self.__wcs.all_world2pix(simulation[1].ra, simulation[1].dec, 0)
-        pix_filter = (0 <= pix_coord[0]) & (pix_coord[0] < w) & (0 <= pix_coord[1]) & (pix_coord[1] < h)
+
+        galaxies_x, galaxies_y, galaxies_mag = _get_source_filter(
+            self.__image, self.__wcs, simulation[1].ra, simulation[1].dec, simulation[1].mag
+        )
         cax = self.__ax.scatter(
-            pix_coord[0][pix_filter], pix_coord[1][pix_filter],
-            c=simulation[1].mag[pix_filter], marker='h',
+            galaxies_x, galaxies_y, c=galaxies_mag, marker='h',
             cmap=mag_cmap
         )
         cbar = self.__figure.colorbar(cax)
@@ -271,9 +284,9 @@ class Flags(Plot):
         self.__wcs = WCS(hdu.header)
         self.__figure = plt.figure(figsize=_page_size)
         self.__ax1 = self.__figure.add_subplot(1, 2, 1, projection=self.__wcs)
-        self.__ax1.imshow(self.__image, cmap=_img_cmap, norm=_img_norm)
+        self.__ax1.imshow(self.__image, cmap=_img_cmap, norm=deepcopy(_img_norm))
         self.__ax2 = self.__figure.add_subplot(1, 2, 2, projection=self.__wcs)
-        self.__ax2.imshow(self.__image, cmap=_img_cmap, norm=_img_norm)
+        self.__ax2.imshow(self.__image, cmap=_img_cmap, norm=deepcopy(_img_norm))
 
     def __set(self, ax, label, catalog, alpha_col, delta_col, flag_col, is_sex2=False):
         ax.set_title(label)
@@ -406,14 +419,18 @@ class Completeness(Plot):
         self.__wcs = WCS(hdu.header)
         self.__max_dist = max_dist
 
-        star_x, star_y, star_filter = self.__get_within_filter(simulation[0].ra, simulation[0].dec)
-        galx_x, galx_y, galx_filter = self.__get_within_filter(simulation[1].ra, simulation[1].dec)
+        stars_x, stars_y, stars_mag = _get_source_filter(
+            hdu.data, self.__wcs, simulation[0].ra, simulation[0].dec, simulation[0].mag
+        )
+        galx_x, galx_y, galx_mag = _get_source_filter(
+            hdu.data, self.__wcs, simulation[1].ra, simulation[1].dec, simulation[1].mag
+        )
 
-        self.__stars = simulation[0].mag[star_filter]
-        self.__galaxies = simulation[1].mag[galx_filter]
+        self.__stars = stars_mag
+        self.__galaxies = galx_mag
 
-        all_x = np.append(star_x[star_filter], galx_x[galx_filter])
-        all_y = np.append(star_y[star_filter], galx_y[galx_filter])
+        all_x = np.append(stars_x, galx_x)
+        all_y = np.append(stars_y, galx_y)
 
         self.__kdtree = KDTree(np.column_stack([all_x, all_y]))
 
@@ -450,8 +467,8 @@ class Completeness(Plot):
         bin_centers = 0.5 * (edges[1:] + edges[:-1])
         for label, recall in recall_list:
             barplot = ax.bar(bin_centers, recall[0] * 100, alpha=0.5, label=label)
-            for r, c in zip(barplot.patches, recall[1]):
-                ax.text(r.get_x() + r.get_width() / 3, r.get_y() + 10, f'({c})')
+            for bar, real_count in zip(barplot.patches, recall[1]):
+                ax.text(bar.get_x() + bar.get_width() / 3, bar.get_y() + 10, f'({real_count})')
 
     def get_figures(self):
         fig = plt.figure(figsize=_page_size)
