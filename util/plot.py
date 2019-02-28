@@ -357,7 +357,7 @@ class Histogram(Plot):
         self.__ax_stars.set_xlabel('Magnitude')
 
         _, self.__bins, _ = self.__ax_stars.hist(
-            stars_mag, bins=nbins,
+            stars_mag, bins=nbins, color='gray',
             label='Truth'
         )
 
@@ -367,7 +367,7 @@ class Histogram(Plot):
         self.__ax_galaxies.set_xlabel('Magnitude')
 
         self.__ax_galaxies.hist(
-            galx_mag, bins=self.__bins,
+            galx_mag, bins=self.__bins, color='gray',
             label='Truth'
         )
 
@@ -379,12 +379,12 @@ class Histogram(Plot):
 
         self.__ax_stars.hist(
             mag[closest['catalog'][star_filter]],
-            bins=self.__bins, histtype='step',
+            bins=self.__bins, histtype='step', lw=2,
             label=label
         )
         self.__ax_galaxies.hist(
             mag[closest['catalog'][galaxy_filter]],
-            bins=self.__bins, histtype='step',
+            bins=self.__bins, histtype='step', lw=2,
             label=label
         )
 
@@ -483,11 +483,15 @@ class Completeness(Plot):
         bad_hist, _ = np.histogram(bad_mag, bins=self.__edges)
         self.__bad_detection.append((label, bad_hist / (galaxies_hist + stars_hist + bad_hist)))
 
-    def __plot_recall(self, ax, edges, recall_list):
+    def __plot_recall(self, ax, edges, recall_list, real_counts):
         ax.set_ylim(0., 100.)
         bin_centers = 0.5 * (edges[1:] + edges[:-1])
+        bars = None
         for label, recall in recall_list:
-            ax.bar(bin_centers, recall * 100, alpha=0.5, label=label)
+            bars = ax.bar(bin_centers, recall * 100, alpha=0.5, label=label)
+        if bars is not None and real_counts is not None:
+            for b, r in zip(bars, real_counts):
+                ax.text(b.get_x() + b.get_width() / 2.5, b.get_y() + 10, str(r))
         ax.set_ylabel('%')
         ax.legend()
         ax.grid(True)
@@ -504,16 +508,16 @@ class Completeness(Plot):
 
         ax_stars = fig_recall.add_subplot(3, 1, 1)
         ax_stars.set_title(f'Star recall ($\\Delta < {self.__max_dist}$px)')
-        self.__plot_recall(ax_stars, self.__edges, self.__star_recall)
+        self.__plot_recall(ax_stars, self.__edges, self.__star_recall, self.__stars_bins)
 
         ax_galaxies = fig_recall.add_subplot(3, 1, 2, sharex=ax_stars)
         ax_galaxies.set_title(f'Galaxy recall ($\\Delta < {self.__max_dist}$px)')
-        self.__plot_recall(ax_galaxies, self.__edges, self.__galaxy_recall)
+        self.__plot_recall(ax_galaxies, self.__edges, self.__galaxy_recall, self.__galaxies_bins)
 
         ax_bad_measured = fig_recall.add_subplot(3, 1, 3, sharex=ax_stars)
         ax_bad_measured.set_title(
             f'Percent of detections at $\\Delta \\geq {self.__max_dist}$px, binned by measured magnitude')
-        self.__plot_recall(ax_bad_measured, self.__edges, self.__bad_detection)
+        self.__plot_recall(ax_bad_measured, self.__edges, self.__bad_detection, None)
 
         fig_recall.tight_layout()
         return [fig_recall]

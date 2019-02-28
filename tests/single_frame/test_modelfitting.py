@@ -86,3 +86,16 @@ def test_generate_report(modelfitting_catalog, reference, stuff_simulation, data
             marker='.'
         )
         report.add(mag_r)
+
+        hist = plot.Histogram(image, stuff_simulation)
+        hist.add(
+            'SExtractor2 MAG_MODEL', reference,
+            'ALPHA_SKY', 'DELTA_SKY',
+            'MAG_MODEL'
+        )
+        hist.add(
+            'SExtractor++ model_mag_r', modelfitting_catalog,
+            'world_centroid_alpha', 'world_centroid_delta',
+            'model_mag_r'
+        )
+        report.add(hist)
