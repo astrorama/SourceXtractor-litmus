@@ -1,13 +1,11 @@
 import abc
-import logging
-from copy import deepcopy
 
 import numpy as np
 
 import matplotlib.pyplot as plt
 from astropy.io import fits
+from astropy.visualization import ZScaleInterval
 from astropy.wcs import WCS
-from matplotlib import colors
 
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.gridspec import GridSpec
@@ -18,8 +16,7 @@ from util import stuff
 from . import get_column
 
 _page_size = (11.7, 8.3)
-_img_cmap = plt.get_cmap('Greys_r')
-_img_norm = colors.SymLogNorm(1000, linscale=10)
+_img_cmap = plt.get_cmap('gist_gray')
 
 _flag_style = {
     stuff.SourceFlags.BIASED: ('red', '1'),
@@ -62,6 +59,9 @@ class Image(object):
     @property
     def size(self):
         return self.__image.shape
+
+    def for_display(self):
+        return ZScaleInterval()(self.data, clip=True)
 
     def get_contained_sources(self, ra, dec, *args):
         h, w = self.size
@@ -111,32 +111,18 @@ class Location(Plot):
         self.__figure = plt.figure(figsize=_page_size)
         self.__ax = self.__figure.add_subplot(1, 1, 1)
         self.__ax.set_title('Location')
-        self.__ax.imshow(image.data, cmap=_img_cmap, norm=deepcopy(_img_norm))
-        # Stars
-        mag_cmap = plt.get_cmap('magma_r')
-        stars_x, stars_y, stars_mag = image.get_contained_sources(
-            simulation[0].ra, simulation[0].dec, simulation[0].mag
-        )
+        self.__ax.imshow(image.for_display(), cmap=_img_cmap)
+
+    def add(self, label, catalog, x_col, y_col, size_col, **kwargs):
         self.__ax.scatter(
-            stars_x, stars_y, c=stars_mag, marker='o',
-            cmap=mag_cmap
+            catalog[x_col], catalog[y_col],
+            label=label, s=np.sqrt(catalog[size_col])*3,
+            **kwargs
         )
-
-        galaxies_x, galaxies_y, galaxies_mag = image.get_contained_sources(
-            simulation[1].ra, simulation[1].dec, simulation[1].mag
-        )
-        cax = self.__ax.scatter(
-            galaxies_x, galaxies_y, c=galaxies_mag, marker='h',
-            cmap=mag_cmap
-        )
-        cbar = self.__figure.colorbar(cax)
-        cbar.ax.set_ylabel('Magnitude (truth)')
-
-    def add(self, label, catalog, x_col, y_col, marker=None):
-        self.__ax.scatter(catalog[x_col], catalog[y_col], marker=marker, label=label, alpha=0.8, )
 
     def get_figures(self):
         self.__ax.legend()
+        self.__figure.tight_layout()
         return [self.__figure]
 
 
@@ -311,9 +297,9 @@ class Flags(Plot):
         super(Flags, self).__init__()
         self.__figure = plt.figure(figsize=_page_size)
         self.__ax1 = self.__figure.add_subplot(1, 2, 1)
-        self.__ax1.imshow(image.data, cmap=_img_cmap, norm=deepcopy(_img_norm))
+        self.__ax1.imshow(image.for_display(), cmap=_img_cmap)
         self.__ax2 = self.__figure.add_subplot(1, 2, 2)
-        self.__ax2.imshow(image.data, cmap=_img_cmap, norm=deepcopy(_img_norm))
+        self.__ax2.imshow(image.for_display(), cmap=_img_cmap)
 
     def __set(self, ax, label, catalog, x_col, y_col, flag_col, is_sex2=False):
         ax.set_title(label)
@@ -537,8 +523,8 @@ def generate_report(output, simulation, image_path, target, reference, weight_im
         image = Image(image_path, weight_image=weight_image)
 
         loc_map = Location(image, simulation)
-        loc_map.add('SExtractor2', reference, 'X_IMAGE', 'Y_IMAGE', marker='1')
-        loc_map.add('SExtractor++', target, 'pixel_centroid_x', 'pixel_centroid_y', marker='2')
+        loc_map.add('SExtractor2', reference, 'X_IMAGE', 'Y_IMAGE', 'ISOAREA_IMAGE', marker='o', facecolors='none', edgecolors='red')
+        loc_map.add('SExtractor++', target, 'pixel_centroid_x', 'pixel_centroid_y', 'area', marker='.', facecolors='none', edgecolors='orange')
         report.add(loc_map)
 
         dist = Distances(image, simulation)
