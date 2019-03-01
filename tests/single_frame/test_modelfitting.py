@@ -62,7 +62,7 @@ def test_generate_report(modelfitting_catalog, reference, stuff_simulation, data
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
-    image = datafiles / 'sim09' / 'img' / 'sim09_r_01.fits'
+    image = plot.Image(datafiles / 'sim09' / 'img' / 'sim09_r_01.fits')
     with plot.Report(module_output_area / 'report.pdf') as report:
         loc_map = plot.Location(image, stuff_simulation)
         loc_map.add('SExtractor2', reference, 'XMODEL_IMAGE', 'YMODEL_IMAGE', marker='1')

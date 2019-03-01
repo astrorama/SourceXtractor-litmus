@@ -118,6 +118,8 @@ def test_generate_report(coadded_catalog, coadded_reference, stuff_simulation, d
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     plot.generate_report(
-        module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'img' / 'sim09_r.fits',
-        coadded_catalog, coadded_reference
+        module_output_area / 'report.pdf', stuff_simulation,
+        datafiles / 'sim09' / 'img' / 'sim09_r.fits',
+        coadded_catalog, coadded_reference,
+        weight_image=datafiles / 'sim09' / 'img' / 'sim09_r.weight.fits'
     )

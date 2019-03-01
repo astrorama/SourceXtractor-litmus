@@ -133,7 +133,10 @@ def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, d
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
-    image = datafiles / 'sim09' / 'img' / 'sim09_r.fits'
+    image = plot.Image(
+        datafiles / 'sim09' / 'img' / 'sim09_r.fits',
+        weight_image=datafiles / 'sim09' / 'img' / 'sim09_r.weight.fits'
+    )
     with plot.Report(module_output_area / 'report.pdf') as report:
         loc_map = plot.Location(image, stuff_simulation_r)
         loc_map.add('SExtractor2 (R)', reference_r, 'X_IMAGE', 'Y_IMAGE', marker='1')
@@ -162,13 +165,13 @@ def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, d
             report.add(mag_r)
 
         for i in range(10):
-            flag_r = plot.Flags(datafiles / 'sim09' / 'img' / 'sim09.fits')
+            flag_r = plot.Flags(image)
             flag_r.set1(
                 'SExtractor2', reference_r,
-                'ALPHA_SKY', 'DELTA_SKY', 'FLAGS'
+                'X_IMAGE', 'Y_IMAGE', 'FLAGS'
             )
             flag_r.set2(
                 f'SExtractor++ auto_flags:{i}', multi_frame_catalog,
-                'world_centroid_alpha', 'world_centroid_delta', f'auto_flags:{i}'
+                'pixel_centroid_x', 'pixel_centroid_y', f'auto_flags:{i}'
             )
             report.add(flag_r)

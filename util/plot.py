@@ -41,15 +41,41 @@ _sex2_flag_style = {
 }
 
 
-def _get_sources_within_image(img, wcs, ra, dec, mag):
-    w, h = img.shape
-    pix_coord = wcs.all_world2pix(ra, dec, 1)
-    # Open a bit, since the center may be outside of the image, but have an effect
-    inside_image = (pix_coord[0] >= -10) & (pix_coord[0] < h + 10) & (pix_coord[1] >= -10) & (pix_coord[1] < w + 10)
-    pix_x = pix_coord[0][inside_image]
-    pix_y = pix_coord[1][inside_image]
-    mag = mag[inside_image]
-    return pix_x, pix_y, mag
+class Image(object):
+    def __init__(self, image, weight_image=None, hdu_index=0):
+        self.__image = fits.open(image)[hdu_index]
+        self.__weight = fits.open(weight_image)[hdu_index] if weight_image else None
+        self.__wcs = WCS(self.__image.header)
+
+    @property
+    def wcs(self):
+        return self.__wcs
+
+    @property
+    def data(self):
+        return self.__image.data
+
+    @property
+    def weight(self):
+        return self.__weight.data
+
+    @property
+    def size(self):
+        return self.__image.shape
+
+    def get_contained_sources(self, ra, dec, *args):
+        h, w = self.size
+        pix_coords = self.__wcs.all_world2pix(ra, dec, 1)
+        pix_x = pix_coords[0]
+        pix_y = pix_coords[1]
+        inside_image = (pix_x >= 0) & (pix_x < w) & (pix_y >= 0) & (pix_y < h)
+        # If we have a weight map, filter out those with weight 0
+        if self.__weight is not None:
+            weight_filter = self.weight[pix_y[inside_image].astype(np.int), pix_x[inside_image].astype(np.int)] != 0.
+            inside_image[inside_image] = weight_filter
+        pix_x = pix_coords[0][inside_image]
+        pix_y = pix_coords[1][inside_image]
+        return [pix_x, pix_y] + [a[inside_image] for a in args]
 
 
 class Plot(object):
@@ -82,25 +108,22 @@ class Location(Plot):
 
     def __init__(self, image, simulation):
         super(Location, self).__init__()
-        hdu = fits.open(image)[0]
-        self.__image = hdu.data
-        self.__wcs = WCS(hdu.header)
         self.__figure = plt.figure(figsize=_page_size)
         self.__ax = self.__figure.add_subplot(1, 1, 1)
         self.__ax.set_title('Location')
-        self.__ax.imshow(self.__image, cmap=_img_cmap, norm=deepcopy(_img_norm))
+        self.__ax.imshow(image.data, cmap=_img_cmap, norm=deepcopy(_img_norm))
         # Stars
         mag_cmap = plt.get_cmap('magma_r')
-        stars_x, stars_y, stars_mag = _get_sources_within_image(
-            self.__image, self.__wcs, simulation[0].ra, simulation[0].dec, simulation[0].mag
+        stars_x, stars_y, stars_mag = image.get_contained_sources(
+            simulation[0].ra, simulation[0].dec, simulation[0].mag
         )
         self.__ax.scatter(
             stars_x, stars_y, c=stars_mag, marker='o',
             cmap=mag_cmap
         )
 
-        galaxies_x, galaxies_y, galaxies_mag = _get_sources_within_image(
-            self.__image, self.__wcs, simulation[1].ra, simulation[1].dec, simulation[1].mag
+        galaxies_x, galaxies_y, galaxies_mag = image.get_contained_sources(
+            simulation[1].ra, simulation[1].dec, simulation[1].mag
         )
         cax = self.__ax.scatter(
             galaxies_x, galaxies_y, c=galaxies_mag, marker='h',
@@ -120,15 +143,11 @@ class Location(Plot):
 class Distances(Plot):
     def __init__(self, image, simulation):
         super(Distances, self).__init__()
-        hdu = fits.open(image)[0]
-        image = hdu.data
-        wcs = WCS(hdu.header)
-
-        stars_x, stars_y, stars_mag = _get_sources_within_image(
-            image, wcs, simulation[0].ra, simulation[0].dec, simulation[0].mag
+        stars_x, stars_y, stars_mag = image.get_contained_sources(
+            simulation[0].ra, simulation[0].dec, simulation[0].mag
         )
-        galaxies_x, galaxies_y, galaxies_mag = _get_sources_within_image(
-            image, wcs, simulation[1].ra, simulation[1].dec, simulation[1].mag
+        galaxies_x, galaxies_y, galaxies_mag = image.get_contained_sources(
+            simulation[1].ra, simulation[1].dec, simulation[1].mag
         )
 
         self.__x = np.append(stars_x, galaxies_x)
@@ -290,18 +309,14 @@ class Scatter(Plot):
 class Flags(Plot):
     def __init__(self, image):
         super(Flags, self).__init__()
-        hdu = fits.open(image)[0]
-        self.__image = hdu.data
-        self.__wcs = WCS(hdu.header)
         self.__figure = plt.figure(figsize=_page_size)
-        self.__ax1 = self.__figure.add_subplot(1, 2, 1, projection=self.__wcs)
-        self.__ax1.imshow(self.__image, cmap=_img_cmap, norm=deepcopy(_img_norm))
-        self.__ax2 = self.__figure.add_subplot(1, 2, 2, projection=self.__wcs)
-        self.__ax2.imshow(self.__image, cmap=_img_cmap, norm=deepcopy(_img_norm))
+        self.__ax1 = self.__figure.add_subplot(1, 2, 1)
+        self.__ax1.imshow(image.data, cmap=_img_cmap, norm=deepcopy(_img_norm))
+        self.__ax2 = self.__figure.add_subplot(1, 2, 2)
+        self.__ax2.imshow(image.data, cmap=_img_cmap, norm=deepcopy(_img_norm))
 
-    def __set(self, ax, label, catalog, alpha_col, delta_col, flag_col, is_sex2=False):
+    def __set(self, ax, label, catalog, x_col, y_col, flag_col, is_sex2=False):
         ax.set_title(label)
-        pix_coord = self.__wcs.all_world2pix(catalog[alpha_col], catalog[delta_col], 0)
         if is_sex2:
             flag_enum = stuff.Sex2SourceFlags
             flag_style = _sex2_flag_style
@@ -316,7 +331,7 @@ class Flags(Plot):
             flag_color, flag_marker = flag_style[flag]
             if flag_filter.any():
                 ax.scatter(
-                    pix_coord[0][flag_filter], pix_coord[1][flag_filter],
+                    catalog[x_col][flag_filter], catalog[y_col][flag_filter],
                     c=flag_color, marker=flag_marker, label=flag
                 )
         ax.legend()
@@ -335,8 +350,6 @@ class Flags(Plot):
 class Histogram(Plot):
     def __init__(self, image, simulation, nbins=20):
         super(Histogram, self).__init__()
-        hdu = fits.open(image)[0]
-        wcs = WCS(hdu.header)
         self.__stars = simulation[0]
         self.__galaxies = simulation[1]
         self.__kdtree = simulation[2]
@@ -344,11 +357,11 @@ class Histogram(Plot):
         self.__galaxy_dists = []
         self.__figure = plt.Figure(figsize=_page_size)
 
-        _, _, stars_mag = _get_sources_within_image(
-            hdu.data, wcs, simulation[0].ra, simulation[0].dec, simulation[0].mag
+        _, _, stars_mag = image.get_contained_sources(
+            simulation[0].ra, simulation[0].dec, simulation[0].mag
         )
-        _, _, galx_mag = _get_sources_within_image(
-            hdu.data, wcs, simulation[1].ra, simulation[1].dec, simulation[1].mag
+        _, _, galx_mag = image.get_contained_sources(
+            simulation[1].ra, simulation[1].dec, simulation[1].mag
         )
 
         self.__ax_stars = self.__figure.add_subplot(2, 1, 1)
@@ -424,17 +437,13 @@ class Completeness(Plot):
 
     def __init__(self, image, simulation, max_dist=0.5):
         super(Completeness, self).__init__()
-        hdu = fits.open(image)[0]
-        self.__width = hdu.data.shape[0]
-        self.__height = hdu.data.shape[1]
-        self.__wcs = WCS(hdu.header)
         self.__max_dist = max_dist
 
-        stars_x, stars_y, stars_mag = _get_sources_within_image(
-            hdu.data, self.__wcs, simulation[0].ra, simulation[0].dec, simulation[0].mag
+        stars_x, stars_y, stars_mag = image.get_contained_sources(
+            simulation[0].ra, simulation[0].dec, simulation[0].mag
         )
-        galx_x, galx_y, galx_mag = _get_sources_within_image(
-            hdu.data, self.__wcs, simulation[1].ra, simulation[1].dec, simulation[1].mag
+        galx_x, galx_y, galx_mag = image.get_contained_sources(
+            simulation[1].ra, simulation[1].dec, simulation[1].mag
         )
 
         self.__stars = stars_mag
@@ -523,8 +532,10 @@ class Completeness(Plot):
         return [fig_recall]
 
 
-def generate_report(output, simulation, image, target, reference):
+def generate_report(output, simulation, image_path, target, reference, weight_image=None):
     with Report(output) as report:
+        image = Image(image_path, weight_image=weight_image)
+
         loc_map = Location(image, simulation)
         loc_map.add('SExtractor2', reference, 'X_IMAGE', 'Y_IMAGE', marker='1')
         loc_map.add('SExtractor++', target, 'pixel_centroid_x', 'pixel_centroid_y', marker='2')
@@ -647,21 +658,21 @@ def generate_report(output, simulation, image, target, reference):
         src_flags = Flags(image)
         src_flags.set1(
             'SExtractor2', reference,
-            'ALPHA_SKY', 'DELTA_SKY', 'FLAGS'
+            'X_IMAGE', 'Y_IMAGE', 'FLAGS'
         )
         src_flags.set2(
             'SExtractor++ source_flags', target,
-            'world_centroid_alpha', 'world_centroid_delta', 'source_flags'
+            'pixel_centroid_x', 'pixel_centroid_y', 'source_flags'
         )
         report.add(src_flags)
 
         auto_flags = Flags(image)
         auto_flags.set1(
             'SExtractor2', reference,
-            'ALPHA_SKY', 'DELTA_SKY', 'FLAGS'
+            'X_IMAGE', 'Y_IMAGE', 'FLAGS'
         )
         auto_flags.set2(
             'SExtractor++ auto_flags', target,
-            'world_centroid_alpha', 'world_centroid_delta', 'auto_flags'
+            'pixel_centroid_x', 'pixel_centroid_y', 'auto_flags'
         )
         report.add(auto_flags)
