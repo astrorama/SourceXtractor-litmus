@@ -3,7 +3,6 @@ import abc
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
-from astropy.table import Table
 from astropy.visualization import ZScaleInterval
 from astropy.wcs import WCS
 from matplotlib.backends.backend_pdf import PdfPages
@@ -266,10 +265,10 @@ class Distances(Plot):
         """
         super(Distances, self).__init__()
         stars_x, stars_y, stars_mag = image.get_contained_sources(
-            simulation[0].ra, simulation[0].dec, simulation[0].mag
+            simulation.stars.ra, simulation.stars.dec, simulation.stars.mag
         )
         galaxies_x, galaxies_y, galaxies_mag = image.get_contained_sources(
-            simulation[1].ra, simulation[1].dec, simulation[1].mag
+            simulation.galaxies.ra, simulation.galaxies.dec, simulation.galaxies.mag
         )
 
         self.__x = np.append(stars_x, galaxies_x)
@@ -377,8 +376,7 @@ class Magnitude(Plot):
             The simulation that originated the image.
         """
         super(Magnitude, self).__init__()
-        self.__mags = np.append(simulation[0].mag, simulation[1].mag)
-        self.__kdtree = simulation[2]
+        self.__simulation = simulation
         self.__figure = plt.figure(figsize=_page_size)
         self.__figure.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
 
@@ -425,22 +423,21 @@ class Magnitude(Plot):
             Passed down to the scatter method from matplotlib.
         """
         # Get the magnitude for the closest true source
-        closest = stuff.get_closest(catalog, self.__kdtree, alpha_col, delta_col)
-        source_mag = self.__mags[closest['source']]
+        closest = self.__simulation.get_closest(catalog[alpha_col], catalog[delta_col])
 
         # Get measured magnitude, error, and calculate the delta to the true one
         mag = get_column(catalog, mag_col)
         mag_err = get_column(catalog, mag_err_col)
-        delta_mag = mag - source_mag
+        delta_mag = mag - closest.magnitude
 
         # Plot
-        self.__ax_mag.scatter(source_mag, mag, label=label, **kwargs)
-        delta_col = self.__ax_delta.scatter(source_mag, delta_mag, label=label, **kwargs)
-        self.__ax_err.scatter(source_mag, mag_err, **kwargs)
+        self.__ax_mag.scatter(closest.magnitude, mag, label=label, **kwargs)
+        delta_col = self.__ax_delta.scatter(closest.magnitude, delta_mag, label=label, **kwargs)
+        self.__ax_err.scatter(closest.magnitude, mag_err, **kwargs)
 
         # Mark there are some outside of the plot
-        delta_above = source_mag[delta_mag > 1.]
-        delta_below = source_mag[delta_mag < -1.]
+        delta_above = closest.magnitude[delta_mag > 1.]
+        delta_below = closest.magnitude[delta_mag < -1.]
         self.__ax_delta.scatter(delta_above, np.ones(delta_above.shape), marker='^', c=delta_col.get_facecolor())
         self.__ax_delta.scatter(delta_below, -np.ones(delta_below.shape), marker='v', c=delta_col.get_facecolor())
 
@@ -467,8 +464,7 @@ class Scatter(Plot):
             The simulation that originated the image.
         """
         super(Scatter, self).__init__()
-        self.__mags = np.append(simulation[0].mag, simulation[1].mag)
-        self.__kdtree = simulation[2]
+        self.__simulation = simulation
         self.__figure = plt.figure(figsize=_page_size)
         self.__figure.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
 
@@ -504,12 +500,11 @@ class Scatter(Plot):
         :param kwargs:
             Passed down to the scatter method from matplotlib.
         """
-        closest = stuff.get_closest(catalog, self.__kdtree, alpha_col, delta_col)
-        source_mag = self.__mags[closest['source']]
+        closest = self.__simulation.get_closest(catalog[alpha_col], catalog[delta_col])
         val = get_column(catalog, val_col)
         err = get_column(catalog, err_col)
-        self.__ax_val.scatter(source_mag, val, label=label, **kwargs)
-        self.__ax_err.scatter(source_mag, err, **kwargs)
+        self.__ax_val.scatter(closest.magnitude, val, label=label, **kwargs)
+        self.__ax_err.scatter(closest.magnitude, err, **kwargs)
 
     def get_figures(self):
         """
@@ -537,7 +532,7 @@ class Flags(Plot):
         self.__ax2.imshow(image.for_display(), cmap=_img_cmap)
 
     @staticmethod
-    def __set(ax, label, catalog, x_col, y_col, flag_col, is_sex2 = False):
+    def __set(ax, label, catalog, x_col, y_col, flag_col, is_sex2=False):
         """
         Convenience method to plot the flags over a matplotlib ax.
         :param ax:
@@ -602,7 +597,7 @@ class Histogram(Plot):
     Display the 'true' magnitude histogram, overlaid with measured magnitude histograms.
     """
 
-    def __init__(self, image, simulation, nbins = 20):
+    def __init__(self, image, simulation, nbins=20):
         """
         :param image:
             An instance of Image, used to project the simulation into X and Y coordinates.
@@ -612,18 +607,16 @@ class Histogram(Plot):
             Number of bins for the histogram
         """
         super(Histogram, self).__init__()
-        self.__stars = simulation[0]
-        self.__galaxies = simulation[1]
-        self.__kdtree = simulation[2]
+        self.__simulation = simulation
         self.__star_dists = []
         self.__galaxy_dists = []
         self.__figure = plt.Figure(figsize=_page_size)
 
         _, _, stars_mag = image.get_contained_sources(
-            simulation[0].ra, simulation[0].dec, simulation[0].mag
+            simulation.stars.ra, simulation.stars.dec, simulation.stars.mag
         )
         _, _, galx_mag = image.get_contained_sources(
-            simulation[1].ra, simulation[1].dec, simulation[1].mag
+            simulation.galaxies.ra, simulation.galaxies.dec, simulation.galaxies.mag
         )
 
         self.__ax_stars = self.__figure.add_subplot(2, 1, 1)
@@ -659,29 +652,32 @@ class Histogram(Plot):
         :param mag_col:
             Column name for the magnitude measurement.
         """
-        closest = stuff.get_closest(catalog, self.__kdtree, alpha_col, delta_col)
-        star_filter = (closest['source'] < len(self.__stars))
-        galaxy_filter = (closest['source'] >= len(self.__galaxies))
+        closest = self.__simulation.get_closest(catalog[alpha_col], catalog[delta_col])
         mag = get_column(catalog, mag_col)
 
+        star_index = closest.catalog[closest.is_star]
+        galaxy_index = closest.catalog[closest.is_galaxy]
+
         self.__ax_stars.hist(
-            mag[closest['catalog'][star_filter]],
+            mag[star_index],
             bins=self.__bins, histtype='step', lw=2,
             label=label
         )
         self.__ax_galaxies.hist(
-            mag[closest['catalog'][galaxy_filter]],
+            mag[galaxy_index],
             bins=self.__bins, histtype='step', lw=2,
             label=label
         )
 
-        self.__star_dists.append((label, mag[closest['catalog'][star_filter]]))
-        self.__galaxy_dists.append((label, mag[closest['catalog'][galaxy_filter]]))
+        self.__star_dists.append((label, mag[star_index]))
+        self.__galaxy_dists.append((label, mag[galaxy_index]))
 
     def get_figures(self):
         """
         :return: The list of generated figures
         """
+        min_mag = self.__simulation.stars.mag.min()
+
         text = []
         for a, b in zip(self.__star_dists, self.__star_dists[1:]):
             a_label, a_stars = a
@@ -691,7 +687,7 @@ class Histogram(Plot):
                 text.append(f'$H_0$({a_label} $\\approx$ {b_label}) p-value = {ks.pvalue:.2e}')
             except:
                 pass
-        self.__ax_stars.text(self.__stars.mag.min(), 0.1, '\n'.join(text), bbox=dict(facecolor='whitesmoke'))
+        self.__ax_stars.text(min_mag, 0.1, '\n'.join(text), bbox=dict(facecolor='whitesmoke'))
         self.__ax_stars.legend()
 
         text = []
@@ -703,7 +699,7 @@ class Histogram(Plot):
                 text.append(f'$H_0$({a_label} $\\approx$ {b_label}) p-value = {ks.pvalue:.2e}')
             except:
                 pass
-        self.__ax_galaxies.text(self.__stars.mag.min(), 0.1, '\n'.join(text), bbox=dict(facecolor='whitesmoke'))
+        self.__ax_galaxies.text(min_mag, 0.1, '\n'.join(text), bbox=dict(facecolor='whitesmoke'))
 
         self.__ax_galaxies.legend()
         self.__figure.tight_layout()
@@ -731,10 +727,10 @@ class Completeness(Plot):
         self.__max_dist = max_dist
 
         stars_x, stars_y, stars_mag = image.get_contained_sources(
-            simulation[0].ra, simulation[0].dec, simulation[0].mag
+            simulation.stars.ra, simulation.stars.dec, simulation.stars.mag
         )
         galx_x, galx_y, galx_mag = image.get_contained_sources(
-            simulation[1].ra, simulation[1].dec, simulation[1].mag
+            simulation.galaxies.ra, simulation.galaxies.dec, simulation.galaxies.mag
         )
 
         self.__stars = stars_mag

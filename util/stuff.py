@@ -49,99 +49,109 @@ class Sex2SourceFlags(IntFlag):
     EXTRACTION_OVERFLOW = 1 << 7
 
 
-def parse_stuff_list(path):
-    """
-    Parses a Stuff input file. See https://www.astromatic.net/software/stuff
-    :return: A tuple with the list of stars, and the list of galaxies
-    """
-    logger.debug(f'Loading stuff list from {path}')
-    stars_raw, galaxies_raw = [], []
-    with open(path, 'r') as lst:
-        for entry in map(str.split, map(str.strip, lst.readlines())):
-            if entry[0] == '100':
-                stars_raw.append(entry)
-            elif entry[0] == '200':
-                galaxies_raw.append(entry)
-            else:
-                raise Exception(f'Unexpected type code {entry[0]}')
+class Simulation(object):
+    def __init__(self, path):
+        """
+        Parses a Stuff input file. See https://www.astromatic.net/software/stuff
+        """
+        logger.debug(f'Loading stuff list from {path}')
+        stars_raw, galaxies_raw = [], []
+        with open(path, 'r') as lst:
+            for entry in map(str.split, map(str.strip, lst.readlines())):
+                if entry[0] == '100':
+                    stars_raw.append(entry)
+                elif entry[0] == '200':
+                    galaxies_raw.append(entry)
+                else:
+                    raise Exception(f'Unexpected type code {entry[0]}')
 
-    logger.debug(f'Loaded {len(stars_raw)} stars')
-    logger.debug(f'Loaded {len(galaxies_raw)} galaxies')
+        logger.debug(f'Loaded {len(stars_raw)} stars')
+        logger.debug(f'Loaded {len(galaxies_raw)} galaxies')
 
-    stars = np.recarray((len(stars_raw),), dtype=[
-        ('ra', float), ('dec', float), ('mag', float)
-    ])
-    galaxies = np.recarray((len(galaxies_raw),), dtype=[
-        ('ra', float), ('dec', float), ('mag', float), ('bt_ratio', float),
-        ('bulge', float), ('bulge_aspect', float), ('disk', float), ('disk_aspect', float),
-        ('redshift', float), ('type', float)
-    ])
+        self.__stars = np.recarray((len(stars_raw),), dtype=[
+            ('ra', float), ('dec', float), ('mag', float)
+        ])
+        self.__galaxies = np.recarray((len(galaxies_raw),), dtype=[
+            ('ra', float), ('dec', float), ('mag', float), ('bt_ratio', float),
+            ('bulge', float), ('bulge_aspect', float), ('disk', float), ('disk_aspect', float),
+            ('redshift', float), ('type', float)
+        ])
 
-    for i, s in enumerate(stars_raw):
-        stars[i].ra, stars[i].dec, stars[i].mag = float(s[1]), float(s[2]), float(s[3])
+        for i, s in enumerate(stars_raw):
+            self.__stars[i].ra, self.__stars[i].dec, self.__stars[i].mag = float(s[1]), float(s[2]), float(s[3])
 
-    for i, g in enumerate(galaxies_raw):
-        galaxies[i].ra, galaxies[i].dec, galaxies[i].mag = float(g[1]), float(g[2]), float(g[3])
-        galaxies[i].bt_ratio = float(g[4])
-        galaxies[i].bulge, galaxies[i].bulge_aspect = float(g[5]), float(g[6])
-        galaxies[i].disk, galaxies[i].disk_aspect = float(g[8]), float(g[9])
-        galaxies[i].redshift = float(g[11])
-        galaxies[i].type = float(g[12])
+        for i, g in enumerate(galaxies_raw):
+            self.__galaxies[i].ra, self.__galaxies[i].dec = float(g[1]), float(g[2])
+            self.__galaxies[i].mag = float(g[3])
+            self.__galaxies[i].bt_ratio = float(g[4])
+            self.__galaxies[i].bulge, self.__galaxies[i].bulge_aspect = float(g[5]), float(g[6])
+            self.__galaxies[i].disk, self.__galaxies[i].disk_aspect = float(g[8]), float(g[9])
+            self.__galaxies[i].redshift = float(g[11])
+            self.__galaxies[i].type = float(g[12])
 
-    return stars, galaxies
+        all_coords = np.column_stack([
+            np.append(self.__stars.ra, self.__galaxies.ra),
+            np.append(self.__stars.dec, self.__galaxies.dec)
+        ])
+        self.__kdtree = KDTree(all_coords)
+        self.__all_mags = np.append(self.__stars.mag, self.__galaxies.mag)
 
+    @property
+    def stars(self):
+        return self.__stars
 
-def index_sources(stars, galaxies):
-    """
-    Creates a KDTree with the stars and galaxies coordinates
-    :param stars:
-        Star list (must have .ra and .dec)
-    :param galaxies:
-        Galaxy list (must have .ra and .dec)
-    :return:
-        A tuple (kdtree, number of stars, number of galaxies)
-        When querying the kdtree, it will return the position on the original list.
-        Stars go first, so if the position < number of stars, then it is a star,
-        otherwise, it is a galaxy (with position index - number of stars)
-    """
-    stars_coords = np.stack([stars.ra, stars.dec]).T
-    galaxies_coords = np.stack([galaxies.ra, galaxies.dec]).T
-    all_coords = np.append(stars_coords, galaxies_coords, axis=0)
-    all_kdtree = KDTree(all_coords)
-    n_stars = len(stars)
-    n_galaxies = len(galaxies)
-    return all_kdtree, n_stars, n_galaxies
+    @property
+    def galaxies(self):
+        return self.__galaxies
 
+    @property
+    def magnitudes(self):
+        """
+        :return: All the magnitudes on the simulation: first stars, then galaxies.
+        """
+        return self.__all_mags
 
-def get_closest(catalog, kdtree, alpha='world_centroid_alpha', delta='world_centroid_delta'):
-    """
-    Find the closest source to the catalog entries. This can be used to cross-relate
-    the entries from the Stuff simulation and a catalog
-    :param catalog:
-        A table that can be accessed column-wise
-    :param alpha:
-        Table column for the alpha coordinate
-    :param delta:
-        Table column for the delta coordinate
-    :return:
-        A dictionary where each value is a list of the same size, and each position correspond to the same entry:
-            * dist: distance to closest source
-            * catalog: corresponding index on the catalog
-            * source: corresponding index on the stuff list
-    """
-    distances = []
-    index_c = []
-    index_s = []
-    for i, e in enumerate(catalog):
-        d, s = kdtree.query([e[alpha], e[delta]], 1)
-        distances.append(d)
-        index_c.append(i)
-        index_s.append(s)
-    return {
-        'dist': np.array(distances),
-        'catalog': np.array(index_c),
-        'source': np.array(index_s),
-    }
+    def get_star_count(self):
+        """
+        :return: Number of stars on the simulation.
+        """
+        return len(self.__stars)
+
+    def get_galaxy_count(self):
+        """
+        :return: Number of galaxies on the simulation.
+        """
+        return len(self.__galaxies)
+
+    def get_closest(self, alpha, delta):
+        """
+        Find the closest source to the catalog entries. This can be used to cross-relate
+        the entries from the Stuff simulation and a catalog
+        :param alpha:
+            Alpha coordinates
+        :param delta:
+            Delta coordinates
+        :return:
+            A numpy array with the columns:
+                * distance: distance to closest source
+                * catalog: corresponding index on the catalog
+                * source: corresponding index on the simulation list
+                * magnitude: magnitude of the closest source
+                * is_star: True if the closest source is a star
+                * is_galaxy: True if the closest source is a galaxy
+        """
+        assert len(alpha) == len(delta)
+        closest = np.recarray((len(alpha),), dtype=[
+            ('distance', float), ('catalog', int), ('source', int), ('magnitude', float),
+            ('is_star', bool), ('is_galaxy', bool)
+        ])
+
+        closest.catalog[:] = np.arange(0, len(alpha))
+        closest.distance[:], closest.source[:] = self.__kdtree.query(np.column_stack([alpha, delta]))
+        closest.magnitude[:] = self.__all_mags[closest.source]
+        closest.is_star[:] = closest.source < self.get_star_count()
+        closest.is_galaxy[:] = np.logical_not(closest.is_star[:])
+        return closest
 
 
 def flux2mag(fluxes, mag_zeropoint=26., exposure=300.):

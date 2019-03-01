@@ -10,9 +10,7 @@ def stuff_simulation_r(datafiles):
     """
     Fixture for the original stuff simulation
     """
-    stars, galaxies = stuff.parse_stuff_list(datafiles / 'sim09' / 'sim09_r.list')
-    kdtree, _, _ = stuff.index_sources(stars, galaxies)
-    return stars, galaxies, kdtree
+    return stuff.Simulation(datafiles / 'sim09' / 'sim09_r.list')
 
 
 @pytest.fixture(scope='session')
@@ -20,9 +18,7 @@ def stuff_simulation_g(datafiles):
     """
     Fixture for the original stuff simulation
     """
-    stars, galaxies = stuff.parse_stuff_list(datafiles / 'sim09' / 'sim09_g.list')
-    kdtree, _, _ = stuff.index_sources(stars, galaxies)
-    return stars, galaxies, kdtree
+    return stuff.Simulation(datafiles / 'sim09' / 'sim09_g.list')
 
 
 @pytest.fixture(scope='session')

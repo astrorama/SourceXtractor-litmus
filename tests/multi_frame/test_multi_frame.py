@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from astropy.table import Table
 
-from util import stuff, plot
+from util import plot
 
 
 @pytest.fixture
@@ -49,16 +49,14 @@ def test_location(multi_frame_catalog, reference_r, stuff_simulation_r, toleranc
     The detections should be at least as close as the ref to the truth.
     Single frame simulations are in pixel coordinates.
     """
-    _, _, kdtree = stuff_simulation_r
-
-    det_closest = stuff.get_closest(
-        multi_frame_catalog, kdtree
+    det_closest = stuff_simulation_r.get_closest(
+        multi_frame_catalog['world_centroid_alpha'], multi_frame_catalog['world_centroid_delta']
     )
-    ref_closest = stuff.get_closest(
-        reference_r, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
+    ref_closest = stuff_simulation_r.get_closest(
+        reference_r['ALPHA_SKY'], reference_r['DELTA_SKY']
     )
 
-    assert np.mean(det_closest['dist']) <= np.mean(ref_closest['dist']) * (1 + tolerances['distance'])
+    assert np.mean(det_closest.distance) <= np.mean(ref_closest.distance) * (1 + tolerances['distance'])
 
 
 def test_iso_magnitude(multi_frame_catalog, reference_r, stuff_simulation_r, tolerances):
@@ -67,19 +65,18 @@ def test_iso_magnitude(multi_frame_catalog, reference_r, stuff_simulation_r, tol
     to the truth as the ref catalog (within a tolerance).
     ISO is measured on the detection frame
     """
-    stars, galaxies, kdtree = stuff_simulation_r
-    expected_mags = np.append(stars.mag, galaxies.mag)
-
-    target_closest = stuff.get_closest(multi_frame_catalog, kdtree)
-    ref_closest = stuff.get_closest(
-        reference_r, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
+    target_closest = stuff_simulation_r.get_closest(
+        multi_frame_catalog['world_centroid_alpha'], multi_frame_catalog['world_centroid_delta']
+    )
+    ref_closest = stuff_simulation_r.get_closest(
+        reference_r['ALPHA_SKY'], reference_r['DELTA_SKY']
     )
 
     target_mag = multi_frame_catalog['isophotal_mag']
     ref_mag = reference_r['MAG_ISO']
 
-    relative_target_diff = np.abs((expected_mags[target_closest['source']] - target_mag) / target_mag)
-    relative_ref_diff = np.abs((expected_mags[ref_closest['source']] - ref_mag) / ref_mag)
+    relative_target_diff = np.abs((target_closest.magnitude - target_mag) / target_mag)
+    relative_ref_diff = np.abs((ref_closest.magnitude - ref_mag) / ref_mag)
 
     assert np.median(relative_target_diff) <= np.median(relative_ref_diff) * (1 + tolerances['magnitude'])
 
@@ -92,17 +89,17 @@ def test_auto_magnitude(frame, multi_frame_catalog, stuff_simulation_r, toleranc
     AUTO is measured on the measurement frames, so it is trickier. Need to run the test for each
     frame, and filter out sources that are on the boundary or outside.
     """
-    stars, galaxies, kdtree = stuff_simulation_r
-    expected_mags = np.append(stars.mag, galaxies.mag)
-
     target_filter = (multi_frame_catalog['auto_flags'][:, frame] == 0)
 
     target = multi_frame_catalog[target_filter]
-    target_closest = stuff.get_closest(target, kdtree)
     target_mag = target['auto_mag'][:, frame]
 
+    target_closest = stuff_simulation_r.get_closest(
+        target['world_centroid_alpha'], target['world_centroid_delta']
+    )
+
     assert np.isclose(
-        target_mag, expected_mags[target_closest['source']], rtol=tolerances['multiframe_magnitude']
+        target_mag, target_closest.magnitude, rtol=tolerances['multiframe_magnitude']
     ).all()
 
 
@@ -114,18 +111,17 @@ def test_aper_magnitude(frame, aper_idx, multi_frame_catalog, stuff_simulation_r
     APERTURE is measured on the measurement frames, so it is trickier. Need to run the test for each
     frame, and filter out sources that are on the boundary or outside.
     """
-    stars, galaxies, kdtree = stuff_simulation_r
-    expected_mags = np.append(stars.mag, galaxies.mag)
-
     target_filter = (multi_frame_catalog['aperture_flags'][:, frame, aper_idx] == 0)
 
     target = multi_frame_catalog[target_filter]
-    target_closest = stuff.get_closest(target, kdtree)
     target_mag = target['aperture_mag'][:, frame, aper_idx]
 
+    target_closest = stuff_simulation_r.get_closest(
+        target['world_centroid_alpha'], target['world_centroid_delta']
+    )
+
     assert np.isclose(
-        target_mag, expected_mags[target_closest['source']],
-        rtol=tolerances['multiframe_magnitude']
+        target_mag, target_closest.magnitude, rtol=tolerances['multiframe_magnitude']
     ).all()
 
 

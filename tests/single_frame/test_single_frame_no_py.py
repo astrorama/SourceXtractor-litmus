@@ -11,9 +11,9 @@ import os
 
 import numpy as np
 import pytest
-
-from util import stuff, plot, get_column
 from astropy.table import Table
+
+from util import plot, get_column
 
 
 @pytest.fixture
@@ -53,16 +53,14 @@ def test_location(single_frame_catalog, reference, stuff_simulation, tolerances)
     The detections should be at least as close as the ref to the truth.
     Single frame simulations are in pixel coordinates.
     """
-    _, _, kdtree = stuff_simulation
-
-    det_closest = stuff.get_closest(
-        single_frame_catalog, kdtree
+    det_closest = stuff_simulation.get_closest(
+        single_frame_catalog['world_centroid_alpha'], single_frame_catalog['world_centroid_delta']
     )
-    ref_closest = stuff.get_closest(
-        reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
+    ref_closest = stuff_simulation.get_closest(
+        reference['ALPHA_SKY'], reference['DELTA_SKY']
     )
 
-    assert np.mean(det_closest['dist']) <= np.mean(ref_closest['dist']) * (1 + tolerances['distance'])
+    assert np.mean(det_closest.distance) <= np.mean(ref_closest.distance) * (1 + tolerances['distance'])
 
 
 @pytest.mark.parametrize(
@@ -97,20 +95,17 @@ def test_magnitude(single_frame_catalog, reference, mag_column, reference_mag_co
     Cross-validate the magnitude columns. The measured magnitudes should be at least as close
     to the truth as the ref catalog (within a tolerance).
     """
-    stars, galaxies, kdtree = stuff_simulation
-    expected_mags = np.append(stars.mag, galaxies.mag)
-
-    det_closest = stuff.get_closest(
-        single_frame_catalog, kdtree
+    det_closest = stuff_simulation.get_closest(
+        single_frame_catalog['world_centroid_alpha'], single_frame_catalog['world_centroid_delta']
     )
-    ref_closest = stuff.get_closest(
-        reference, kdtree, alpha='ALPHA_SKY', delta='DELTA_SKY'
+    ref_closest = stuff_simulation.get_closest(
+        reference['ALPHA_SKY'], reference['DELTA_SKY']
     )
 
-    det_mag = get_column(single_frame_catalog[det_closest['catalog']], mag_column[0])
-    ref_mag = get_column(reference[ref_closest['catalog']], reference_mag_column[0])
-    relative_mag_diff = np.abs((expected_mags[det_closest['source']] - det_mag) / det_mag)
-    relative_ref_diff = np.abs((expected_mags[ref_closest['source']] - ref_mag) / ref_mag)
+    det_mag = get_column(single_frame_catalog[det_closest.catalog], mag_column[0])
+    ref_mag = get_column(reference[ref_closest.catalog], reference_mag_column[0])
+    relative_mag_diff = np.abs((det_closest.magnitude - det_mag) / det_mag)
+    relative_ref_diff = np.abs((ref_closest.magnitude - ref_mag) / ref_mag)
 
     assert np.median(relative_mag_diff) <= np.median(relative_ref_diff) * (1 + tolerances['magnitude'])
 
