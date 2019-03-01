@@ -139,8 +139,8 @@ def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, d
     )
     with plot.Report(module_output_area / 'report.pdf') as report:
         loc_map = plot.Location(image, stuff_simulation_r)
-        loc_map.add('SExtractor2 (R)', reference_r, 'X_IMAGE', 'Y_IMAGE', marker='1')
-        loc_map.add('SExtractor++', multi_frame_catalog, 'pixel_centroid_x', 'pixel_centroid_y', marker='2')
+        loc_map.add('SExtractor2 (R)', reference_r, 'X_IMAGE', 'Y_IMAGE', 'ISOAREA_IMAGE', marker='1')
+        loc_map.add('SExtractor++', multi_frame_catalog, 'pixel_centroid_x', 'pixel_centroid_y', 'area', marker='2')
         report.add(loc_map)
 
         dist = plot.Distances(image, stuff_simulation_r)
@@ -166,11 +166,11 @@ def test_generate_report(multi_frame_catalog, reference_r, stuff_simulation_r, d
 
         for i in range(10):
             flag_r = plot.Flags(image)
-            flag_r.set1(
+            flag_r.set_sextractor2(
                 'SExtractor2', reference_r,
                 'X_IMAGE', 'Y_IMAGE', 'FLAGS'
             )
-            flag_r.set2(
+            flag_r.set_sextractorpp(
                 f'SExtractor++ auto_flags:{i}', multi_frame_catalog,
                 'pixel_centroid_x', 'pixel_centroid_y', f'auto_flags:{i}'
             )
