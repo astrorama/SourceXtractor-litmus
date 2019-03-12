@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -126,6 +127,16 @@ def sextractorxx(request, test_configuration, sextractorxx_defaults, module_outp
         test_output_area,
         sextractorxx_defaults
     )
+
+
+@pytest.fixture(scope='session')
+def sextractorxx_py(test_configuration):
+    python_path = os.path.expandvars(test_configuration.get('sextractorxx', 'pythonpath')).split(':')
+    for pp in python_path:
+        if pp not in sys.path:
+            sys.path.append(pp)
+    mod = __import__('sextractorxx.config')
+    return mod.config
 
 
 @pytest.fixture(scope='session')

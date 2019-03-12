@@ -24,7 +24,7 @@ angle = FreeParameter(lambda o: o.get_angle(), Range((-2 * 3.14159, 2 * 3.14159)
 
 iso_flux = get_flux_parameter()
 
-for band, group in top:
+for band, group in measurement_group:
     bulge_disk = FreeParameter(.5, Range((0, 1), RangeType.LINEAR))
     flux = DependentParameter(lambda f, r: f * r, iso_flux, bulge_disk)
     mag = DependentParameter(lambda f: -2.5 * np.log10(f) + MAG_ZEROPOINT, flux)
