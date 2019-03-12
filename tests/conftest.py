@@ -1,55 +1,11 @@
 import os
-import re
-
-import pytest
-import tempfile
 from pathlib import Path
 
+import pytest
 from iniparse import SafeConfigParser
 
-from util.bin import Executable, ExecutionResult
 from util import stuff
-
-if False:
-    def pytest_addoption(parser):
-        """
-        Register with PyTest options for this test suite
-        """
-        parser.addini(
-            'sextractorxx',
-            default='${CMAKE_PROJECT_PATH}/SExtractorxx/build.${BINARY_TAG}/bin/SExtractor',
-            help='Location of the SExtractor binary (can use environment variables)',
-        )
-        parser.addini(
-            'data_dir',
-            default=os.path.join(os.path.dirname(__file__), '..', 'data'),
-            help='Location of test data files',
-        )
-        parser.addini(
-            'sextractorxx_defaults',
-            default=os.path.join(os.path.dirname(__file__), '..', 'sextractorxx.config'),
-            help='Configuration file with the default configuration for SExtractor'
-        )
-        parser.addini(
-            'sextractorxx_output_area',
-            default=tempfile.gettempdir(),
-            help='Where to put the results of the SExtractor runs'
-        )
-        parser.addini(
-            'sextractorxx_mag_zeropoint',
-            default=26.,
-            help='Magnitude zeropoint used to convert fluxes to magnitudes'
-        )
-        parser.addini(
-            'sextractorxx_exposure',
-            default=300.,
-            help='Exposure time used to convert fluxes to magnitudes'
-        )
-        parser.addini(
-            'sextractorxx_signal_to_noise',
-            default=1000.,
-            help='Signal to noise ratio used to filter the catalogs'
-        )
+from util.bin import Executable
 
 
 @pytest.fixture(scope='session')
