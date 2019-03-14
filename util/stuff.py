@@ -173,25 +173,25 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
 
-    stars, galaxies = parse_stuff_list(sys.argv[1])
+    simulation = Simulation(sys.argv[1])
 
     import matplotlib.pyplot as plt
 
     plt.figure()
 
     plt.subplot(2, 2, 1)
-    plt.hist(galaxies.redshift)
+    plt.hist(simulation.galaxies.redshift)
     plt.title('Galaxy redshift')
 
     plt.subplot(2, 2, 2)
-    plt.scatter(galaxies.ra, galaxies.dec, c=galaxies.mag)
+    plt.scatter(simulation.galaxies.ra, simulation.galaxies.dec, c=simulation.galaxies.mag)
     plt.xlabel('RA')
     plt.ylabel('DEC')
     plt.colorbar()
     plt.title('Galaxy magnitudes')
 
     plt.subplot(2, 2, 4)
-    plt.scatter(stars.ra, stars.dec, c=stars.mag)
+    plt.scatter(simulation.stars.ra, simulation.stars.dec, c=simulation.stars.mag)
     plt.xlabel('RA')
     plt.ylabel('DEC')
     plt.colorbar()
