@@ -1,4 +1,6 @@
 import abc
+import logging
+from copy import deepcopy
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,6 +8,7 @@ from astropy.io import fits
 from astropy.visualization import ZScaleInterval
 from astropy.wcs import WCS
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.colors import Normalize
 from matplotlib.gridspec import GridSpec
 from scipy.spatial import KDTree
 from scipy.stats import ks_2samp
@@ -18,6 +21,9 @@ _page_size = (11.7, 8.3)
 
 # Color map used for the images
 _img_cmap = plt.get_cmap('gist_gray')
+
+# Color map for the magnitudes
+_mag_cmap = plt.get_cmap('magma_r')
 
 # SExtractor++ flag style. We define them here instead of relying on the auto-style,
 # so they stays consistent between runs, images, etc.
@@ -725,6 +731,7 @@ class Completeness(Plot):
         """
         super(Completeness, self).__init__()
         self.__max_dist = max_dist
+        self.__image = image
 
         stars_x, stars_y, stars_mag = image.get_contained_sources(
             simulation.stars.ra, simulation.stars.dec, simulation.stars.mag
@@ -733,8 +740,8 @@ class Completeness(Plot):
             simulation.galaxies.ra, simulation.galaxies.dec, simulation.galaxies.mag
         )
 
-        self.__stars = stars_mag
-        self.__galaxies = galx_mag
+        self.__stars = np.column_stack((stars_x, stars_y, stars_mag))
+        self.__galaxies = np.column_stack((galx_x, galx_y, galx_mag))
         self.__all_mag = np.append(stars_mag, galx_mag)
 
         all_x = np.append(stars_x, galx_x)
@@ -742,17 +749,18 @@ class Completeness(Plot):
 
         self.__kdtree = KDTree(np.column_stack([all_x, all_y]))
 
-        min_mag = np.floor(np.min(np.append(self.__stars, self.__galaxies)))
-        max_mag = np.ceil(np.max(np.append(self.__stars, self.__galaxies)))
-        self.__edges = np.arange(min_mag - 0.5, max_mag + 0.5, 1)
+        self.__min_mag = np.floor(np.min(np.append(stars_mag, galx_mag)))
+        self.__max_mag = np.ceil(np.max(np.append(stars_mag, galx_mag)))
+        self.__edges = np.arange(self.__min_mag - 0.5, self.__max_mag + 0.5, 1)
 
-        self.__stars_bins, _ = np.histogram(self.__stars, bins=self.__edges)
-        self.__galaxies_bins, _ = np.histogram(self.__galaxies, bins=self.__edges)
+        self.__stars_bins, _ = np.histogram(stars_mag, bins=self.__edges)
+        self.__galaxies_bins, _ = np.histogram(galx_mag, bins=self.__edges)
 
         self.__star_recall = []
         self.__galaxy_recall = []
         self.__bad_detection = []
         self.__false_detection_nearest = []
+        self.__missing = []
 
     def add(self, label, catalog, x_col, y_col, mag_col):
         """
@@ -768,24 +776,30 @@ class Completeness(Plot):
         :param mag_col:
             Column name for the magnitude measurement.
         """
+        nstars = len(self.__stars)
+        ngalaxies = len(self.__galaxies)
+
         d, i = self.__kdtree.query(
             np.column_stack([catalog[x_col], catalog[y_col]])
         )
         real_found, real_counts = np.unique(i[d <= self.__max_dist], return_counts=True)
         # Found contains now the index of the "real" stars and galaxies with at least one match
         # If the index is < len(self.__stars), it is a star
-        stars_found = real_found[real_found < len(self.__stars)]
-        stars_hist, _ = np.histogram(self.__stars[stars_found], bins=self.__edges)
+        stars_found = real_found[real_found < nstars]
+        stars_not_found = np.setdiff1d(np.arange(nstars), stars_found)
+        stars_hist, _ = np.histogram(self.__stars[stars_found][:, 2], bins=self.__edges)
         stars_recall = stars_hist / self.__stars_bins
         # If the index is > len(self.__stars, it is a galaxy)
-        galaxies_found = real_found[real_found >= len(self.__stars)] - len(self.__stars)
-        galaxies_hist, _ = np.histogram(self.__galaxies[galaxies_found], bins=self.__edges)
+        galaxies_found = real_found[real_found >= nstars] - nstars
+        galaxies_not_found = np.setdiff1d(np.arange(ngalaxies), galaxies_found)
+        galaxies_hist, _ = np.histogram(self.__galaxies[galaxies_found][:, 2], bins=self.__edges)
         galaxies_recall = galaxies_hist / self.__galaxies_bins
-        # Store recalls
+        # Store recalls and misses
         self.__star_recall.append((label, stars_recall))
         self.__galaxy_recall.append((label, galaxies_recall))
+        self.__missing.append((label, stars_not_found, stars_found, galaxies_not_found, galaxies_found))
 
-        # Last, detections that are too far from any "real" source
+        # Detections that are too far from any "real" source
         # We show them binned by measured, and by nearest
         bad_filter = (d >= self.__max_dist)
         bad_mag = catalog[mag_col][bad_filter]
@@ -820,6 +834,41 @@ class Completeness(Plot):
         ax.legend()
         ax.yaxis.grid(True)
 
+    def __plot_missing(self, fig, ax, stars_not_found, stars_found, galaxies_not_found, galaxies_found):
+        """
+        Plot over the image the missing sources
+        """
+        missing_stars = self.__stars[stars_not_found]
+        missing_galaxies = self.__galaxies[galaxies_not_found]
+        recalled_stars = self.__stars[stars_found]
+        recalled_galaxies = self.__galaxies[galaxies_found]
+
+        norm = Normalize(vmin=self.__min_mag, vmax=self.__max_mag)
+        ax.imshow(self.__image.for_display(), cmap=_img_cmap)
+        ss = ax.scatter(
+            missing_stars[:, 0], missing_stars[:, 1], c=missing_stars[:, 2], norm=norm, cmap=_mag_cmap,
+            marker='H', label='Stars', facecolors='none'
+        )
+        ss.set_facecolor('none')
+        gs = ax.scatter(
+            missing_galaxies[:, 0], missing_galaxies[:, 1], c=missing_galaxies[:, 2], norm=norm, cmap=_mag_cmap,
+            marker='o', label='Galaxies', facecolors='none'
+        )
+        gs.set_facecolor('none')
+
+        # Sprinkle found, just to see nearby identified sources
+        ax.scatter(
+            recalled_stars[:, 0], recalled_stars[:, 1], c=recalled_stars[:, 2], norm=norm, cmap=_mag_cmap,
+            marker='1', label='Hit star'
+        )
+        ax.scatter(
+            recalled_galaxies[:, 0], recalled_galaxies[:, 1], c=recalled_galaxies[:, 2], norm=norm, cmap=_mag_cmap,
+            marker='2', label='Hit galaxy'
+        )
+
+        fig.colorbar(ss, ax=ax)
+        ax.legend()
+
     def get_figures(self):
         """
         :return: The list of generated figures
@@ -840,7 +889,19 @@ class Completeness(Plot):
         self.__plot_recall(ax_bad_measured, self.__edges, self.__bad_detection, None)
 
         fig_recall.tight_layout()
-        return [fig_recall]
+        figures = [fig_recall]
+
+        for label, stars_not_found, stars_found, galaxies_not_found, galaxies_found in self.__missing:
+            fig_missing = plt.figure(figsize=_page_size)
+            ax_missing = fig_missing.add_subplot(1, 1, 1)
+            ax_missing.set_title(f'Missing/offset sources for {label}')
+            self.__plot_missing(
+                fig_missing, ax_missing, stars_not_found, stars_found, galaxies_not_found, galaxies_found
+            )
+            fig_missing.tight_layout()
+            figures.append(fig_missing)
+
+        return figures
 
 
 def generate_report(output, simulation, image_path, target, reference, weight_image=None):
