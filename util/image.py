@@ -63,7 +63,7 @@ class Image(object):
         """
         return ZScaleInterval()(self.data, clip=True)
 
-    def get_contained_sources(self, ra, dec, *args):
+    def get_contained_sources(self, ra, dec, **kwargs):
         """
         Filter sources that are outside of the image:
             1. It projects the right ascension and declination to pixel coordinates.
@@ -74,26 +74,38 @@ class Image(object):
             Right ascension
         :param dec:
             Declination
-        :param args:
+        :param kwargs:
             Arbitrary number of parameters, where each one is expected to be a numpy array with the same
-            size of ra and dec. There parameters will also be filtered out.
+            size of ra and dec. These parameters will also be filtered out.
         :return:
-            A tuple with the x and y pixel coordinates for the sources that are within the image,
-            and one extra element corresponding to each extra argument, also filtered.
+            A numpy record, with the x and y pixel coordinates for the sources that are within the image,
+            and one extra element corresponding to each extra argument, using they keyword as name, also filtered.
         """
         assert len(ra) == len(dec)
-        for a in args:
-            assert len(a) == len(ra)
+
+        dtypes = [('x', float), ('y', float)]
+        for k, v in kwargs.items():
+            assert isinstance(v, np.ndarray)
+            assert len(v) == len(ra)
+            dtypes.append((k, v.dtype))
 
         h, w = self.size
         pix_coords = self.__wcs.all_world2pix(ra, dec, 1)
         pix_x = pix_coords[0]
         pix_y = pix_coords[1]
         inside_image = (pix_x >= 0) & (pix_x < w) & (pix_y >= 0) & (pix_y < h)
+
         # If we have a weight map, filter out those with weight 0
         if self.__weight is not None:
             weight_filter = self.weight[pix_y[inside_image].astype(np.int), pix_x[inside_image].astype(np.int)] != 0.
             inside_image[inside_image] = weight_filter
-        pix_x = pix_coords[0][inside_image]
-        pix_y = pix_coords[1][inside_image]
-        return tuple([pix_x, pix_y] + [a[inside_image] for a in args])
+
+        nmatches = inside_image.sum()
+
+        result = np.recarray((nmatches,), dtype=dtypes)
+        result.x = pix_coords[0][inside_image]
+        result.y = pix_coords[1][inside_image]
+        for k, v in kwargs.items():
+            result[k][:] = v[inside_image]
+
+        return result

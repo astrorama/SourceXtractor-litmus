@@ -9,8 +9,8 @@ from scipy.spatial import KDTree
 from scipy.stats import ks_2samp
 
 from . import stuff
-from .image import Image
 from .catalog import get_column
+from .image import Image
 
 # A4 size in inches
 _page_size = (11.7, 8.3)
@@ -171,16 +171,16 @@ class Distances(Plot):
             The simulation that originated the image.
         """
         super(Distances, self).__init__()
-        stars_x, stars_y, stars_mag = image.get_contained_sources(
-            simulation.stars.ra, simulation.stars.dec, simulation.stars.mag
+        stars = image.get_contained_sources(
+            simulation.stars.ra, simulation.stars.dec, mag=simulation.stars.mag
         )
-        galaxies_x, galaxies_y, galaxies_mag = image.get_contained_sources(
-            simulation.galaxies.ra, simulation.galaxies.dec, simulation.galaxies.mag
+        galaxies = image.get_contained_sources(
+            simulation.galaxies.ra, simulation.galaxies.dec, mag=simulation.galaxies.mag
         )
 
-        self.__x = np.append(stars_x, galaxies_x)
-        self.__y = np.append(stars_y, galaxies_y)
-        self.__mag = np.append(stars_mag, galaxies_mag)
+        self.__x = np.append(stars.x, galaxies.x)
+        self.__y = np.append(stars.y, galaxies.y)
+        self.__mag = np.append(stars.mag, galaxies.mag)
         self.__kdtree = KDTree(np.column_stack([self.__x, self.__y]))
         self.__entries = []
 
@@ -519,11 +519,11 @@ class Histogram(Plot):
         self.__galaxy_dists = []
         self.__figure = plt.Figure(figsize=_page_size)
 
-        _, _, stars_mag = image.get_contained_sources(
-            simulation.stars.ra, simulation.stars.dec, simulation.stars.mag
+        stars = image.get_contained_sources(
+            simulation.stars.ra, simulation.stars.dec, mag=simulation.stars.mag
         )
-        _, _, galx_mag = image.get_contained_sources(
-            simulation.galaxies.ra, simulation.galaxies.dec, simulation.galaxies.mag
+        galaxies = image.get_contained_sources(
+            simulation.galaxies.ra, simulation.galaxies.dec, mag=simulation.galaxies.mag
         )
 
         self.__ax_stars = self.__figure.add_subplot(2, 1, 1)
@@ -532,7 +532,7 @@ class Histogram(Plot):
         self.__ax_stars.set_xlabel('Magnitude')
 
         _, self.__bins, _ = self.__ax_stars.hist(
-            stars_mag, bins=nbins, color='gray',
+            stars.mag, bins=nbins, #color='gray',
             label='Truth'
         )
 
@@ -542,7 +542,7 @@ class Histogram(Plot):
         self.__ax_galaxies.set_xlabel('Magnitude')
 
         self.__ax_galaxies.hist(
-            galx_mag, bins=self.__bins, color='gray',
+            galaxies.mag, bins=self.__bins, #color='gray',
             label='Truth'
         )
 
@@ -634,28 +634,26 @@ class Completeness(Plot):
         self.__max_dist = max_dist
         self.__image = image
 
-        stars_x, stars_y, stars_mag = image.get_contained_sources(
-            simulation.stars.ra, simulation.stars.dec, simulation.stars.mag
+        self.__stars = image.get_contained_sources(
+            simulation.stars.ra, simulation.stars.dec, mag=simulation.stars.mag
         )
-        galx_x, galx_y, galx_mag = image.get_contained_sources(
-            simulation.galaxies.ra, simulation.galaxies.dec, simulation.galaxies.mag
+        self.__galaxies = image.get_contained_sources(
+            simulation.galaxies.ra, simulation.galaxies.dec, mag=simulation.galaxies.mag
         )
+        self.__all_mag = np.append(self.__stars.mag, self.__galaxies.mag)
 
-        self.__stars = np.column_stack((stars_x, stars_y, stars_mag))
-        self.__galaxies = np.column_stack((galx_x, galx_y, galx_mag))
-        self.__all_mag = np.append(stars_mag, galx_mag)
-
-        all_x = np.append(stars_x, galx_x)
-        all_y = np.append(stars_y, galx_y)
+        all_x = np.append(self.__stars.x, self.__galaxies.x)
+        all_y = np.append(self.__stars.y, self.__galaxies.y)
 
         self.__kdtree = KDTree(np.column_stack([all_x, all_y]))
 
-        self.__min_mag = np.floor(np.min(np.append(stars_mag, galx_mag)))
-        self.__max_mag = np.ceil(np.max(np.append(stars_mag, galx_mag)))
+        all_mags = np.append(self.__stars.mag, self.__galaxies.mag)
+        self.__min_mag = np.floor(np.min(all_mags))
+        self.__max_mag = np.ceil(np.max(all_mags))
         self.__edges = np.arange(self.__min_mag - 0.5, self.__max_mag + 0.5, 1)
 
-        self.__stars_bins, _ = np.histogram(stars_mag, bins=self.__edges)
-        self.__galaxies_bins, _ = np.histogram(galx_mag, bins=self.__edges)
+        self.__stars_bins, _ = np.histogram(self.__stars.mag, bins=self.__edges)
+        self.__galaxies_bins, _ = np.histogram(self.__galaxies.mag, bins=self.__edges)
 
         self.__star_recall = []
         self.__galaxy_recall = []
@@ -688,12 +686,12 @@ class Completeness(Plot):
         # If the index is < len(self.__stars), it is a star
         stars_found = real_found[real_found < nstars]
         stars_not_found = np.setdiff1d(np.arange(nstars), stars_found)
-        stars_hist, _ = np.histogram(self.__stars[stars_found][:, 2], bins=self.__edges)
+        stars_hist, _ = np.histogram(self.__stars.mag[stars_found], bins=self.__edges)
         stars_recall = stars_hist / self.__stars_bins
         # If the index is > len(self.__stars, it is a galaxy)
         galaxies_found = real_found[real_found >= nstars] - nstars
         galaxies_not_found = np.setdiff1d(np.arange(ngalaxies), galaxies_found)
-        galaxies_hist, _ = np.histogram(self.__galaxies[galaxies_found][:, 2], bins=self.__edges)
+        galaxies_hist, _ = np.histogram(self.__galaxies.mag[galaxies_found], bins=self.__edges)
         galaxies_recall = galaxies_hist / self.__galaxies_bins
         # Store recalls and misses
         self.__star_recall.append((label, stars_recall))
@@ -747,23 +745,23 @@ class Completeness(Plot):
         norm = Normalize(vmin=self.__min_mag, vmax=self.__max_mag)
         ax.imshow(self.__image.for_display(), cmap=_img_cmap)
         ss = ax.scatter(
-            missing_stars[:, 0], missing_stars[:, 1], c=missing_stars[:, 2], norm=norm, cmap=_mag_cmap,
+            missing_stars.x, missing_stars.y, c=missing_stars.mag, norm=norm, cmap=_mag_cmap,
             marker='H', label='Stars', facecolors='none'
         )
         ss.set_facecolor('none')
         gs = ax.scatter(
-            missing_galaxies[:, 0], missing_galaxies[:, 1], c=missing_galaxies[:, 2], norm=norm, cmap=_mag_cmap,
+            missing_galaxies.x, missing_galaxies.y, c=missing_galaxies.mag, norm=norm, cmap=_mag_cmap,
             marker='o', label='Galaxies', facecolors='none'
         )
         gs.set_facecolor('none')
 
         # Sprinkle found, just to see nearby identified sources
         ax.scatter(
-            recalled_stars[:, 0], recalled_stars[:, 1], c=recalled_stars[:, 2], norm=norm, cmap=_mag_cmap,
+            recalled_stars.x, recalled_stars.y, c=recalled_stars.mag, norm=norm, cmap=_mag_cmap,
             marker='1', label='Hit star'
         )
         ax.scatter(
-            recalled_galaxies[:, 0], recalled_galaxies[:, 1], c=recalled_galaxies[:, 2], norm=norm, cmap=_mag_cmap,
+            recalled_galaxies.x, recalled_galaxies.y, c=recalled_galaxies.mag, norm=norm, cmap=_mag_cmap,
             marker='2', label='Hit galaxy'
         )
 
