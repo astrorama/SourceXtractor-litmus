@@ -12,7 +12,8 @@ import numpy as np
 import pytest
 from astropy.table import Table
 
-from util import get_column, plot
+from util import plot
+from util.catalog import get_column
 
 
 @pytest.fixture
