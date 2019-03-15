@@ -1,12 +1,12 @@
-import numpy as np
 import pytest
 from astropy.table import Table
 
 from util import stuff
+from util.validation import CrossValidation
 
 
 @pytest.fixture(scope='session')
-def stuff_simulation(datafiles):
+def sim09_r_simulation(datafiles):
     """
     Fixture for the original stuff simulation
     """
@@ -14,20 +14,38 @@ def stuff_simulation(datafiles):
 
 
 @pytest.fixture(scope='session')
-def reference(datafiles, signal_to_noise_ratio):
+def sim09_r_01_reference(datafiles, tolerances):
     """
-    Fixture for the ref catalog, filtered by signal/noise and sorted by location
+    Fixture for the ref catalog, filtered by signal/noise.
     """
     catalog = Table.read(datafiles / 'sim09' / 'ref' / 'sim09_r_01_reference.fits')
-    bright_filter = catalog['FLUX_ISO'] / catalog['FLUXERR_ISO'] >= signal_to_noise_ratio
-    return np.sort(catalog[bright_filter], order=('ALPHA_SKY', 'DELTA_SKY'))
+    bright_filter = catalog['FLUX_ISO'] / catalog['FLUXERR_ISO'] >= tolerances['signal_to_noise']
+    return catalog[bright_filter]
 
 
 @pytest.fixture(scope='session')
-def coadded_reference(datafiles, signal_to_noise_ratio):
+def sim09_r_01_cross(sim09_r_01_reference, sim09_r_simulation, datafiles, tolerances):
+    cross = CrossValidation(
+        datafiles / 'sim09' / 'img' / 'sim09_r_01.fits', sim09_r_simulation,
+        max_dist=tolerances['distance']
+    )
+    return cross(sim09_r_01_reference['X_IMAGE'], sim09_r_01_reference['Y_IMAGE'])
+
+
+@pytest.fixture(scope='session')
+def sim09_r_reference(datafiles, tolerances):
     """
-    Fixture for the ref catalog, filtered by signal/noise and sorted by location
+    Fixture for the ref catalog, filtered by signal/noise.
     """
     catalog = Table.read(datafiles / 'sim09' / 'ref' / 'sim09_r_reference.fits')
-    bright_filter = catalog['FLUX_ISO'] / catalog['FLUXERR_ISO'] >= signal_to_noise_ratio
-    return np.sort(catalog[bright_filter], order=('ALPHA_SKY', 'DELTA_SKY'))
+    bright_filter = catalog['FLUX_ISO'] / catalog['FLUXERR_ISO'] >= tolerances['signal_to_noise']
+    return catalog[bright_filter]
+
+
+@pytest.fixture(scope='session')
+def sim09_r_cross(sim09_r_reference, sim09_r_simulation, datafiles, tolerances):
+    cross = CrossValidation(
+        datafiles / 'sim09' / 'img' / 'sim09_r.fits', sim09_r_simulation,
+        max_dist=tolerances['distance']
+    )
+    return cross(sim09_r_reference['X_IMAGE'], sim09_r_reference['Y_IMAGE'])

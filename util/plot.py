@@ -152,7 +152,7 @@ class Location(Plot):
         :return: The list of generated figures
         """
         self.__ax.legend()
-        self.__figure.tight_layout()
+        self.__figure.set_tight_layout(True)
         return [self.__figure]
 
 
@@ -221,7 +221,7 @@ class Distances(Plot):
             ax_d.set_title(f'$\\Delta y$ for {label}')
             _, bins, _ = ax_d.hist(dist_y, bins=bins)
 
-        fig.tight_layout()
+        fig.set_tight_layout(True)
         return fig
 
     def _plot_dist_vs_mag(self):
@@ -260,7 +260,7 @@ class Distances(Plot):
         ax_y.set_ylim(max_dist, -max_dist)
 
         ax_x.legend()
-        fig.tight_layout()
+        fig.set_tight_layout(True)
         return fig
 
     def get_figures(self):
@@ -610,7 +610,7 @@ class Histogram(Plot):
         self.__ax_galaxies.text(min_mag, 0.1, '\n'.join(text), bbox=dict(facecolor='whitesmoke'))
 
         self.__ax_galaxies.legend()
-        self.__figure.tight_layout()
+        self.__figure.set_tight_layout(True)
         return [self.__figure]
 
 
@@ -695,10 +695,10 @@ class Completeness(Plot):
         """
         Plot over the image the missing sources
         """
-        missing_stars = self.__cross_validation.stars[crossval.stars_not_found]
-        missing_galaxies = self.__cross_validation.galaxies[crossval.galaxies_not_found]
-        recalled_stars = self.__cross_validation.stars[crossval.stars_found]
-        recalled_galaxies = self.__cross_validation.galaxies[crossval.galaxies_found]
+        missing_stars = crossval.stars_not_found
+        missing_galaxies = crossval.galaxies_not_found
+        recalled_stars = crossval.stars_found
+        recalled_galaxies = crossval.galaxies_found
 
         norm = Normalize()
         ax.imshow(self.__image.for_display(), cmap=_img_cmap)
@@ -745,7 +745,7 @@ class Completeness(Plot):
             f'Percent of detections at $\\Delta \\geq {self.__max_dist}$px, binned by measured magnitude')
         self.__plot_recall(ax_bad_measured, self.__bad_detection, None)
 
-        fig_recall.tight_layout()
+        fig_recall.set_tight_layout(True)
         figures = [fig_recall]
 
         for label, crossval in self.__missing:
@@ -755,7 +755,7 @@ class Completeness(Plot):
             self.__plot_missing(
                 fig_missing, ax_missing, crossval
             )
-            fig_missing.tight_layout()
+            fig_missing.set_tight_layout(True)
             figures.append(fig_missing)
 
         return figures

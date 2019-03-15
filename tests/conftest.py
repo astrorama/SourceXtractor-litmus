@@ -140,36 +140,12 @@ def sextractorxx_py(test_configuration):
 
 
 @pytest.fixture(scope='session')
-def flux2mag(test_configuration):
-    """
-    Fixture to convert fluxes to magnitudes using the values configured in the ini file
-    """
-    zeropoint = float(test_configuration.get('flux2mag', 'mag_zeropoint'))
-    exposure = float(test_configuration.get('flux2mag', 'exposure'))
-
-    def _flux2mag_wrapper(v):
-        return stuff.flux2mag(v, zeropoint, exposure)
-
-    return _flux2mag_wrapper
-
-
-@pytest.fixture(scope='session')
-def signal_to_noise_ratio(test_configuration):
-    """
-    This is the signal to noise ratio used to filter out faint sources
-    """
-    return float(test_configuration.get('filters', 'signal_to_noise'))
-
-
-@pytest.fixture(scope='session')
 def tolerances(test_configuration):
     """
     Allow to configure the tolerances for the checks
     """
     return {
         'magnitude': float(test_configuration.get('tolerances', 'magnitude')),
-        'multiframe_magnitude': float(test_configuration.get('tolerances', 'multiframe_magnitude')),
-        'flux': float(test_configuration.get('tolerances', 'flux')),
-        'flux_error': float(test_configuration.get('tolerances', 'flux_error')),
-        'distance': float(test_configuration.get('tolerances', 'distance'))
+        'distance': float(test_configuration.get('tolerances', 'distance')),
+        'signal_to_noise': float(test_configuration.get('tolerances', 'signal_to_noise'))
     }

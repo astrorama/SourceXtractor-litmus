@@ -15,14 +15,15 @@ from astropy.table import Table
 
 from util import plot
 from util.catalog import get_column
+from util.validation import CrossValidation
 
 
 @pytest.fixture
-def single_frame_catalog(sextractorxx, datafiles, module_output_area, signal_to_noise_ratio):
+def single_frame_catalog(sextractorxx, datafiles, module_output_area, tolerances):
     """
     Run sextractorxx on a single frame. Overrides the output area per test so
     SExtractor is only run once for this setup.
-    The output is filtered by signal/noise, and sorted by location, so cross-matching is easier
+    The output is filtered by signal/noise.
     """
     sextractorxx.set_output_directory(module_output_area)
 
@@ -37,52 +38,23 @@ def single_frame_catalog(sextractorxx, datafiles, module_output_area, signal_to_
         assert run.exit_code == 0
 
     catalog = Table.read(output_catalog)
-    bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= signal_to_noise_ratio
-    return np.sort(catalog[bright_filter], order=('world_centroid_alpha', 'world_centroid_delta'))
+    bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
+    return catalog[bright_filter]
 
 
-def test_detection(single_frame_catalog, reference):
+@pytest.fixture
+def single_frame_cross(single_frame_catalog, sim09_r_simulation, datafiles, tolerances):
+    detection_image = datafiles / 'sim09' / 'img' / 'sim09_r_01.fits'
+    cross = CrossValidation(detection_image, sim09_r_simulation, max_dist=tolerances['distance'])
+    return cross(single_frame_catalog['pixel_centroid_x'], single_frame_catalog['pixel_centroid_y'])
+
+
+def test_detection(single_frame_cross, sim09_r_01_cross):
     """
     Test that the number of results matches the ref, and that they are reasonably close
     """
-    assert len(single_frame_catalog) > 0
-    assert len(single_frame_catalog) == len(reference)
-
-
-def test_location(single_frame_catalog, reference, stuff_simulation, tolerances):
-    """
-    The detections should be at least as close as the ref to the truth.
-    Single frame simulations are in pixel coordinates.
-    """
-    det_closest = stuff_simulation.get_closest(
-        single_frame_catalog['world_centroid_alpha'], single_frame_catalog['world_centroid_delta']
-    )
-    ref_closest = stuff_simulation.get_closest(
-        reference['ALPHA_SKY'], reference['DELTA_SKY']
-    )
-
-    assert np.mean(det_closest.distance) <= np.mean(ref_closest.distance) * (1 + tolerances['distance'])
-
-
-@pytest.mark.parametrize(
-    ['flux_column', 'reference_flux_column'], [
-        [['isophotal_flux', 'isophotal_flux_err'], ['FLUX_ISO', 'FLUXERR_ISO']],
-        [['auto_flux', 'auto_flux_err'], ['FLUX_AUTO', 'FLUXERR_AUTO']]
-    ]
-)
-def test_fluxes(single_frame_catalog, reference, flux_column, reference_flux_column, tolerances):
-    """
-    Cross-validate flux columns. The measured fluxes and errors should be close to the ref.
-    """
-    target_flux = get_column(single_frame_catalog, flux_column[0])
-    reference_flux = get_column(reference, reference_flux_column[0])
-    target_flux_err = get_column(single_frame_catalog, flux_column[1])
-    reference_flux_err = get_column(reference, reference_flux_column[1])
-
-    relative_flux_diff = np.abs((target_flux - reference_flux) / target_flux)
-    relative_flux_err_diff = np.abs((target_flux_err - reference_flux_err) / target_flux_err)
-    assert np.nanmedian(relative_flux_diff) < tolerances['flux']
-    assert np.nanmedian(relative_flux_err_diff) < tolerances['flux']
+    assert len(single_frame_cross.stars_found) >= len(sim09_r_01_cross.stars_found)
+    assert len(single_frame_cross.galaxies_found) >= len(sim09_r_01_cross.galaxies_found)
 
 
 @pytest.mark.parametrize(
@@ -91,31 +63,33 @@ def test_fluxes(single_frame_catalog, reference, flux_column, reference_flux_col
         [['auto_mag', 'auto_mag_err'], ['MAG_AUTO', 'MAGERR_AUTO']],
     ]
 )
-def test_magnitude(single_frame_catalog, reference, mag_column, reference_mag_column, stuff_simulation, tolerances):
+def test_magnitude(single_frame_catalog, single_frame_cross, sim09_r_01_reference, sim09_r_01_cross,
+                   mag_column, reference_mag_column, tolerances):
     """
     Cross-validate the magnitude columns. The measured magnitudes should be at least as close
     to the truth as the ref catalog (within a tolerance).
+    We use only the hits, and ignore the detections that are a miss.
     """
-    det_closest = stuff_simulation.get_closest(
-        single_frame_catalog['world_centroid_alpha'], single_frame_catalog['world_centroid_delta']
-    )
-    ref_closest = stuff_simulation.get_closest(
-        reference['ALPHA_SKY'], reference['DELTA_SKY']
-    )
 
-    det_mag = get_column(single_frame_catalog[det_closest.catalog], mag_column[0])
-    ref_mag = get_column(reference[ref_closest.catalog], reference_mag_column[0])
-    relative_mag_diff = np.abs((det_closest.magnitude - det_mag) / det_mag)
-    relative_ref_diff = np.abs((ref_closest.magnitude - ref_mag) / ref_mag)
+    # We use only those sources that are a hit, and do not bother to compare
+    # others
+    catalog_hits = single_frame_catalog[single_frame_cross.all_catalog]
+    ref_hits = sim09_r_01_reference[sim09_r_01_cross.all_catalog]
 
-    assert np.median(relative_mag_diff) <= np.median(relative_ref_diff) * (1 + tolerances['magnitude'])
+    catalog_mag = get_column(catalog_hits, mag_column[0])
+    ref_mag = get_column(ref_hits, reference_mag_column[0])
+
+    catalog_mag_diff = catalog_mag - single_frame_cross.all_magnitudes
+    ref_mag_diff = ref_mag - sim09_r_01_cross.all_magnitudes
+
+    assert np.median(catalog_mag_diff) <= np.median(ref_mag_diff) * (1 + tolerances['magnitude'])
 
 
-def test_generate_report(single_frame_catalog, reference, stuff_simulation, datafiles, module_output_area):
+def test_generate_report(single_frame_catalog, sim09_r_01_reference, sim09_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     plot.generate_report(
-        module_output_area / 'report.pdf', stuff_simulation, datafiles / 'sim09' / 'img' / 'sim09_r_01.fits',
-        single_frame_catalog, reference
+        module_output_area / 'report.pdf', sim09_r_simulation, datafiles / 'sim09' / 'img' / 'sim09_r_01.fits',
+        single_frame_catalog, sim09_r_01_reference
     )
