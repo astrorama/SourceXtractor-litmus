@@ -533,7 +533,7 @@ class Histogram(Plot):
         self.__ax_stars.set_xlabel('Magnitude')
 
         _, self.__bins, _ = self.__ax_stars.hist(
-            stars.mag, bins=nbins,  # color='gray',
+            stars.mag, bins=nbins, color='gray',
             label='Truth'
         )
 
@@ -543,7 +543,7 @@ class Histogram(Plot):
         self.__ax_galaxies.set_xlabel('Magnitude')
 
         self.__ax_galaxies.hist(
-            galaxies.mag, bins=self.__bins,  # color='gray',
+            galaxies.mag, bins=self.__bins, color='gray',
             label='Truth'
         )
 
