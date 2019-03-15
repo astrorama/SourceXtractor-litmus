@@ -657,17 +657,15 @@ class Completeness(Plot):
             Column name for the magnitude measurement.
         """
 
-        stars_found, stars_not_found, stars_recall, \
-        galaxies_found, galaxies_not_found, galaxies_recall, \
-        misids = self.__cross_validation(
+        crossval = self.__cross_validation(
             catalog[x_col], catalog[y_col], catalog[mag_col]
         )
 
-        self.__star_recall.append((label, stars_recall))
-        self.__galaxy_recall.append((label, galaxies_recall))
-        self.__bad_detection.append((label, misids))
+        self.__star_recall.append((label, crossval.stars_recall))
+        self.__galaxy_recall.append((label, crossval.galaxies_recall))
+        self.__bad_detection.append((label, crossval.misids))
 
-        self.__missing.append((label, stars_not_found, stars_found, galaxies_not_found, galaxies_found))
+        self.__missing.append((label, crossval))
 
     def __plot_recall(self, ax, recall_list, real_counts):
         """
@@ -693,14 +691,14 @@ class Completeness(Plot):
         ax.legend()
         ax.yaxis.grid(True)
 
-    def __plot_missing(self, fig, ax, stars_not_found, stars_found, galaxies_not_found, galaxies_found):
+    def __plot_missing(self, fig, ax, crossval):
         """
         Plot over the image the missing sources
         """
-        missing_stars = self.__cross_validation.stars[stars_not_found]
-        missing_galaxies = self.__cross_validation.galaxies[galaxies_not_found]
-        recalled_stars = self.__cross_validation.stars[stars_found]
-        recalled_galaxies = self.__cross_validation.galaxies[galaxies_found]
+        missing_stars = self.__cross_validation.stars[crossval.stars_not_found]
+        missing_galaxies = self.__cross_validation.galaxies[crossval.galaxies_not_found]
+        recalled_stars = self.__cross_validation.stars[crossval.stars_found]
+        recalled_galaxies = self.__cross_validation.galaxies[crossval.galaxies_found]
 
         norm = Normalize()
         ax.imshow(self.__image.for_display(), cmap=_img_cmap)
@@ -750,12 +748,12 @@ class Completeness(Plot):
         fig_recall.tight_layout()
         figures = [fig_recall]
 
-        for label, stars_not_found, stars_found, galaxies_not_found, galaxies_found in self.__missing:
+        for label, crossval in self.__missing:
             fig_missing = plt.figure(figsize=_page_size)
             ax_missing = fig_missing.add_subplot(1, 1, 1)
             ax_missing.set_title(f'Missing/offset sources for {label}')
             self.__plot_missing(
-                fig_missing, ax_missing, stars_not_found, stars_found, galaxies_not_found, galaxies_found
+                fig_missing, ax_missing, crossval
             )
             fig_missing.tight_layout()
             figures.append(fig_missing)

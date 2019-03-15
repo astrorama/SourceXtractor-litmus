@@ -1,17 +1,36 @@
+from pathlib import Path
+
 import numpy as np
 from scipy.spatial import KDTree
 
+from util.image import Image
+
 
 class CrossValidation(object):
+    class CrossValidationResult(object):
+        def __init__(self, stars_found, stars_not_found, stars_recall,
+                     galaxies_found, galaxies_not_found, galaxies_recall,
+                     misids):
+            self.stars_found = stars_found
+            self.stars_not_found = stars_not_found
+            self.stars_recall = stars_recall
+            self.galaxies_found = galaxies_found
+            self.galaxies_not_found = galaxies_not_found
+            self.galaxies_recall = galaxies_recall
+            self.misids = misids
 
     def __init__(self, image, simulation, max_dist=0.5, bin_size=1):
-        self.__max_dist = max_dist
-        self.__image = image
+        if isinstance(image, str) or isinstance(image, Path):
+            self.__image = Image(image)
+        else:
+            self.__image = image
 
-        self.stars = image.get_contained_sources(
+        self.__max_dist = max_dist
+
+        self.stars = self.__image.get_contained_sources(
             simulation.stars.ra, simulation.stars.dec, mag=simulation.stars.mag
         )
-        self.galaxies = image.get_contained_sources(
+        self.galaxies = self.__image.get_contained_sources(
             simulation.galaxies.ra, simulation.galaxies.dec, mag=simulation.galaxies.mag
         )
         self.__all_mag = np.append(self.stars.mag, self.galaxies.mag)
@@ -34,7 +53,7 @@ class CrossValidation(object):
     def bin_centers(self):
         return self.__bin_size / 2. * (self.__edges[1:] + self.__edges[:-1])
 
-    def __call__(self, x, y, mag):
+    def __call__(self, x, y, mag=None):
         nstars = len(self.stars)
         ngalaxies = len(self.galaxies)
 
@@ -58,11 +77,16 @@ class CrossValidation(object):
 
         # Detections that are too far from any "real" source
         # We show them binned by measured, and by nearest
-        bad_filter = (d >= self.__max_dist)
-        bad_mag = mag[bad_filter]
-        bad_hist, _ = np.histogram(bad_mag, bins=self.__edges)
-        misids = bad_hist / (galaxies_hist + stars_hist + bad_hist)
+        if mag is not None:
+            bad_filter = (d >= self.__max_dist)
+            bad_mag = mag[bad_filter]
+            bad_hist, _ = np.histogram(bad_mag, bins=self.__edges)
+            misids = bad_hist / (galaxies_hist + stars_hist + bad_hist)
+        else:
+            misids = None
 
-        return stars_found, stars_not_found, stars_recall, \
-               galaxies_found, galaxies_not_found, galaxies_recall, \
-               misids
+        return CrossValidation.CrossValidationResult(
+            stars_found, stars_not_found, stars_recall,
+            galaxies_found, galaxies_not_found, galaxies_recall,
+            misids
+        )
