@@ -25,3 +25,14 @@ def test_add_model_measure_group(sextractorxx_py, datafiles):
     # Must not fail
     measurement_group = sextractorxx_py.MeasurementGroup(top)
     sextractorxx_py.add_model(measurement_group, sextractorxx_py.PointSourceModel(x, y, flux))
+
+
+def test_missing_file_in_python(sextractorxx_py, datafiles):
+    with raises(Exception):
+        sextractorxx_py.load_fits_images([datafiles / 'ouch.fits'])
+
+    with raises(Exception):
+        sextractorxx_py.load_fits_images(
+            [datafiles / 'sim09' / 'img' / 'sim09_r_01.fits'],
+            psf_files=[datafiles / 'sim09' / 'psf' / 'ouch.psf'],
+        )
