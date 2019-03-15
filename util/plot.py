@@ -8,6 +8,7 @@ from matplotlib.gridspec import GridSpec
 from scipy.spatial import KDTree
 from scipy.stats import ks_2samp
 
+from util.validation import CrossValidation
 from . import stuff
 from .catalog import get_column
 from .image import Image
@@ -532,7 +533,7 @@ class Histogram(Plot):
         self.__ax_stars.set_xlabel('Magnitude')
 
         _, self.__bins, _ = self.__ax_stars.hist(
-            stars.mag, bins=nbins, #color='gray',
+            stars.mag, bins=nbins,  # color='gray',
             label='Truth'
         )
 
@@ -542,7 +543,7 @@ class Histogram(Plot):
         self.__ax_galaxies.set_xlabel('Magnitude')
 
         self.__ax_galaxies.hist(
-            galaxies.mag, bins=self.__bins, #color='gray',
+            galaxies.mag, bins=self.__bins,  # color='gray',
             label='Truth'
         )
 
@@ -621,7 +622,7 @@ class Completeness(Plot):
         3. Detections done too far from any true sources, binned by the measured magnitude
     """
 
-    def __init__(self, image, simulation, max_dist=0.5):
+    def __init__(self, image, simulation, max_dist=0.5, bin_size=1.):
         """
         :param image:
             An instance of Image, used to project the simulation into X and Y coordinates.
@@ -631,30 +632,10 @@ class Completeness(Plot):
             Maximum distance, in pixels, to be a source considered a match to a real source.
         """
         super(Completeness, self).__init__()
-        self.__max_dist = max_dist
+        self.__cross_validation = CrossValidation(image, simulation, max_dist, bin_size)
         self.__image = image
 
-        self.__stars = image.get_contained_sources(
-            simulation.stars.ra, simulation.stars.dec, mag=simulation.stars.mag
-        )
-        self.__galaxies = image.get_contained_sources(
-            simulation.galaxies.ra, simulation.galaxies.dec, mag=simulation.galaxies.mag
-        )
-        self.__all_mag = np.append(self.__stars.mag, self.__galaxies.mag)
-
-        all_x = np.append(self.__stars.x, self.__galaxies.x)
-        all_y = np.append(self.__stars.y, self.__galaxies.y)
-
-        self.__kdtree = KDTree(np.column_stack([all_x, all_y]))
-
-        all_mags = np.append(self.__stars.mag, self.__galaxies.mag)
-        self.__min_mag = np.floor(np.min(all_mags))
-        self.__max_mag = np.ceil(np.max(all_mags))
-        self.__edges = np.arange(self.__min_mag - 0.5, self.__max_mag + 0.5, 1)
-
-        self.__stars_bins, _ = np.histogram(self.__stars.mag, bins=self.__edges)
-        self.__galaxies_bins, _ = np.histogram(self.__galaxies.mag, bins=self.__edges)
-
+        self.__max_dist = max_dist
         self.__star_recall = []
         self.__galaxy_recall = []
         self.__bad_detection = []
@@ -675,46 +656,27 @@ class Completeness(Plot):
         :param mag_col:
             Column name for the magnitude measurement.
         """
-        nstars = len(self.__stars)
-        ngalaxies = len(self.__galaxies)
 
-        d, i = self.__kdtree.query(
-            np.column_stack([catalog[x_col], catalog[y_col]])
+        stars_found, stars_not_found, stars_recall, \
+        galaxies_found, galaxies_not_found, galaxies_recall, \
+        misids = self.__cross_validation(
+            catalog[x_col], catalog[y_col], catalog[mag_col]
         )
-        real_found, real_counts = np.unique(i[d <= self.__max_dist], return_counts=True)
-        # Found contains now the index of the "real" stars and galaxies with at least one match
-        # If the index is < len(self.__stars), it is a star
-        stars_found = real_found[real_found < nstars]
-        stars_not_found = np.setdiff1d(np.arange(nstars), stars_found)
-        stars_hist, _ = np.histogram(self.__stars.mag[stars_found], bins=self.__edges)
-        stars_recall = stars_hist / self.__stars_bins
-        # If the index is > len(self.__stars, it is a galaxy)
-        galaxies_found = real_found[real_found >= nstars] - nstars
-        galaxies_not_found = np.setdiff1d(np.arange(ngalaxies), galaxies_found)
-        galaxies_hist, _ = np.histogram(self.__galaxies.mag[galaxies_found], bins=self.__edges)
-        galaxies_recall = galaxies_hist / self.__galaxies_bins
-        # Store recalls and misses
+
         self.__star_recall.append((label, stars_recall))
         self.__galaxy_recall.append((label, galaxies_recall))
+        self.__bad_detection.append((label, misids))
+
         self.__missing.append((label, stars_not_found, stars_found, galaxies_not_found, galaxies_found))
 
-        # Detections that are too far from any "real" source
-        # We show them binned by measured, and by nearest
-        bad_filter = (d >= self.__max_dist)
-        bad_mag = catalog[mag_col][bad_filter]
-        bad_hist, _ = np.histogram(bad_mag, bins=self.__edges)
-        self.__bad_detection.append((label, bad_hist / (galaxies_hist + stars_hist + bad_hist)))
-
-    @staticmethod
-    def __plot_recall(ax, edges, recall_list, real_counts):
+    def __plot_recall(self, ax, recall_list, real_counts):
         """
         Plot the star and galaxy recalls.
         """
         ax.set_ylim(0., 100.)
-        bin_centers = 0.5 * (edges[1:] + edges[:-1])
         bars = None
         for label, recall in recall_list:
-            bars = ax.bar(bin_centers, recall * 100, alpha=0.5, label=label)
+            bars = ax.bar(self.__cross_validation.bin_centers, recall * 100, alpha=0.5, label=label)
         if bars is not None and real_counts is not None:
             for b, r in zip(bars, real_counts):
                 ax.text(b.get_x() + b.get_width() / 2.5, b.get_y() + 10, str(r))
@@ -722,14 +684,12 @@ class Completeness(Plot):
         ax.legend()
         ax.yaxis.grid(True)
 
-    @staticmethod
-    def __plot_false(ax, edges, false_list):
+    def __plot_false(self, ax, false_list):
         """
         Plot the 'false' (or rather, too far) detections.
         """
-        bin_centers = 0.5 * (edges[1:] + edges[:-1])
         for label, count in false_list:
-            ax.bar(bin_centers, count, alpha=0.5, label=label)
+            ax.bar(self.__cross_validation.bin_centers, count, alpha=0.5, label=label)
         ax.legend()
         ax.yaxis.grid(True)
 
@@ -737,12 +697,12 @@ class Completeness(Plot):
         """
         Plot over the image the missing sources
         """
-        missing_stars = self.__stars[stars_not_found]
-        missing_galaxies = self.__galaxies[galaxies_not_found]
-        recalled_stars = self.__stars[stars_found]
-        recalled_galaxies = self.__galaxies[galaxies_found]
+        missing_stars = self.__cross_validation.stars[stars_not_found]
+        missing_galaxies = self.__cross_validation.galaxies[galaxies_not_found]
+        recalled_stars = self.__cross_validation.stars[stars_found]
+        recalled_galaxies = self.__cross_validation.galaxies[galaxies_found]
 
-        norm = Normalize(vmin=self.__min_mag, vmax=self.__max_mag)
+        norm = Normalize()
         ax.imshow(self.__image.for_display(), cmap=_img_cmap)
         ss = ax.scatter(
             missing_stars.x, missing_stars.y, c=missing_stars.mag, norm=norm, cmap=_mag_cmap,
@@ -776,16 +736,16 @@ class Completeness(Plot):
 
         ax_stars = fig_recall.add_subplot(3, 1, 1)
         ax_stars.set_title(f'Star recall ($\\Delta < {self.__max_dist}$px)')
-        self.__plot_recall(ax_stars, self.__edges, self.__star_recall, self.__stars_bins)
+        self.__plot_recall(ax_stars, self.__star_recall, self.__cross_validation.stars_bins)
 
         ax_galaxies = fig_recall.add_subplot(3, 1, 2, sharex=ax_stars)
         ax_galaxies.set_title(f'Galaxy recall ($\\Delta < {self.__max_dist}$px)')
-        self.__plot_recall(ax_galaxies, self.__edges, self.__galaxy_recall, self.__galaxies_bins)
+        self.__plot_recall(ax_galaxies, self.__galaxy_recall, self.__cross_validation.galaxies_bins)
 
         ax_bad_measured = fig_recall.add_subplot(3, 1, 3, sharex=ax_stars)
         ax_bad_measured.set_title(
             f'Percent of detections at $\\Delta \\geq {self.__max_dist}$px, binned by measured magnitude')
-        self.__plot_recall(ax_bad_measured, self.__edges, self.__bad_detection, None)
+        self.__plot_recall(ax_bad_measured, self.__bad_detection, None)
 
         fig_recall.tight_layout()
         figures = [fig_recall]
