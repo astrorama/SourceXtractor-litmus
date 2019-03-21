@@ -28,7 +28,7 @@ def modelfitting_catalog(sextractorxx, datafiles, module_output_area, tolerances
             weight_type='weight',
             weight_absolute=True,
             python_config_file=datafiles / 'sim09' / 'sim09_multi_modelfitting.py',
-            threads_nb=4
+            thread_count=4
         )
         assert run.exit_code == 0
 

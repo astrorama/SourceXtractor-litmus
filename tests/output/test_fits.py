@@ -3,7 +3,7 @@ import numpy as np
 from astropy.io import fits
 
 
-def test_fits_output_file(sextractorxx, datafiles):
+def test_fits_output_catalog_filename(sextractorxx, datafiles):
     """
     Run SExtractor asking for FITS output on a file
     """
@@ -14,8 +14,8 @@ def test_fits_output_file(sextractorxx, datafiles):
 
     run = sextractorxx(
         detection_image=single_source_fits,
-        output_file_format='FITS',
-        output_file=output_catalog,
+        output_catalog_format='FITS',
+        output_catalog_filename=output_catalog,
         output_properties='SourceIDs,PixelCentroid'
     )
     assert run.exit_code == 0
@@ -46,8 +46,8 @@ def test_output_exists(sextractorxx, datafiles):
 
     run = sextractorxx(
         detection_image=single_source_fits,
-        output_file_format='FITS',
-        output_file=output_catalog,
+        output_catalog_format='FITS',
+        output_catalog_filename=output_catalog,
         output_properties='SourceIDs,PixelCentroid'
     )
     assert run.exit_code == 0

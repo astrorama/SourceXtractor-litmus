@@ -32,7 +32,7 @@ def single_frame_catalog(sextractorxx, datafiles, module_output_area, tolerances
         run = sextractorxx(
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels',
             detection_image=datafiles / 'sim09' / 'img' / 'sim09_r_01.fits',
-            psf_file=datafiles / 'sim09' / 'psf' / 'sim09_r_01.psf',
+            psf_filename=datafiles / 'sim09' / 'psf' / 'sim09_r_01.psf',
             python_config_file=None
         )
         assert run.exit_code == 0

@@ -10,8 +10,8 @@ def test_output_directory_missing(sextractorxx, datafiles):
 
     run = sextractorxx(
         detection_image=single_source_fits,
-        output_file_format='FITS',
-        output_file=output_catalog,
+        output_catalog_filename_format='FITS',
+        output_catalog_filename=output_catalog,
         output_properties='SourceIDs,PixelCentroid'
     )
     assert run.exit_code > 0
@@ -24,7 +24,7 @@ def test_wrong_output_property(sextractorxx, datafiles):
     single_source_fits = datafiles / 'simple' / 'saturated.fits'
     run = sextractorxx(
         detection_image=single_source_fits,
-        output_file_format='FITS',
+        output_catalog_filename_format='FITS',
         output_properties='SourceIDs,PixelCentroid,ThisIsAnInvalidPropertyIHope'
     )
     assert run.exit_code > 0

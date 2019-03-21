@@ -49,7 +49,7 @@ def test_boundary(sextractorxx, datafiles):
     run = sextractorxx(
         detection_image=saturated_fits,
         output_properties='SourceIDs,PixelCentroid,SourceFlags',
-        threshold_value=5
+        detection_threshold=5
     )
     assert run.exit_code == 0
 
@@ -68,7 +68,7 @@ def test_blended(sextractorxx, datafiles):
     run = sextractorxx(
         detection_image=neighbours_fits,
         output_properties='SourceIDs,PixelCentroid,SourceFlags',
-        threshold_value=2,
+        detection_threshold=2,
         partition_multithreshold=True,
         detect_minarea=80
     )

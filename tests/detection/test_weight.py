@@ -45,7 +45,7 @@ def test_weight_mask(sextractorxx, datafiles):
         detection_image=datafiles / 'simple' / 'boundary.fits',
         weight_image=datafiles / 'simple' / 'boundary_weights.fits',
         weight_type='weight',
-        threshold_value=5,
+        detection_threshold=5,
         output_properties='SourceIDs,PixelCentroid,SourceFlags'
     )
     assert run.exit_code == 0

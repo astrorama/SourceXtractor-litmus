@@ -12,8 +12,8 @@ def test_ascii_output_stdout(sextractorxx, datafiles):
 
     run = sextractorxx(
         detection_image=single_source_fits,
-        output_file_format='ASCII',
-        output_file='',
+        output_catalog_format='ASCII',
+        output_catalog_filename='',
         output_properties='SourceIDs,PixelCentroid'
     )
     assert run.exit_code == 0
@@ -27,7 +27,7 @@ def test_ascii_output_stdout(sextractorxx, datafiles):
     assert np.isclose(table[0][3], 24.0353)
 
 
-def test_ascii_output_file(sextractorxx, datafiles):
+def test_ascii_output_catalog_filename(sextractorxx, datafiles):
     """
     Run SExtractor asking for ASCII output on a file
     """
@@ -38,8 +38,8 @@ def test_ascii_output_file(sextractorxx, datafiles):
 
     run = sextractorxx(
         detection_image=single_source_fits,
-        output_file_format='ASCII',
-        output_file=output_catalog,
+        output_catalog_format='ASCII',
+        output_catalog_filename=output_catalog,
         output_properties='SourceIDs,PixelCentroid'
     )
     assert run.exit_code == 0
@@ -67,8 +67,8 @@ def test_output_exists(sextractorxx, datafiles):
 
     run = sextractorxx(
         detection_image=single_source_fits,
-        output_file_format='ASCII',
-        output_file=output_catalog,
+        output_catalog_format='ASCII',
+        output_catalog_filename=output_catalog,
         output_properties='SourceIDs,PixelCentroid'
     )
     assert run.exit_code == 0

@@ -96,8 +96,8 @@ class SExtractorxx(object):
                     cmd_args.extend([f'--{k.replace("_", "-")}', v])
         # Generate a config file with all settings
         else:
-            if 'output_file' not in cfg_args:
-                cfg_args['output_file'] = self.__output_dir / 'output.fits'
+            if 'output_catalog_filename' not in cfg_args:
+                cfg_args['output_catalog_filename'] = self.__output_dir / 'output.fits'
             cfg_file = self.__output_dir / 'sextractorxx.config'
             with open(cfg_file, 'w') as cfg_fd:
                 for k, v in cfg_args.items():
@@ -105,7 +105,7 @@ class SExtractorxx(object):
                         print(f'{k.replace("_", "-")}={v}', file=cfg_fd)
             cmd_args.extend(['--config-file', cfg_file])
 
-        self.__output_catalog = cfg_args.get('output_file', None)
+        self.__output_catalog = cfg_args.get('output_catalog_filename', None)
         result = self.__exe.run(*cmd_args, cwd=self.__output_dir, env=self.__env)
 
         if result.exit_code != 0 and self.__output_catalog and os.path.exists(self.__output_catalog):

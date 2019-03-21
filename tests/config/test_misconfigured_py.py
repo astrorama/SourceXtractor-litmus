@@ -34,5 +34,5 @@ def test_missing_file_in_python(sextractorxx_py, datafiles):
     with raises(Exception):
         sextractorxx_py.load_fits_images(
             [datafiles / 'sim09' / 'img' / 'sim09_r_01.fits'],
-            psf_files=[datafiles / 'sim09' / 'psf' / 'ouch.psf'],
+            psf_filename=[datafiles / 'sim09' / 'psf' / 'ouch.psf'],
         )

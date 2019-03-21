@@ -27,7 +27,7 @@ def coadded_catalog(sextractorxx, datafiles, module_output_area, tolerances):
             weight_image=datafiles / 'sim09' / 'img' / 'sim09_r.weight.fits',
             weight_type='weight',
             weight_absolute=True,
-            psf_file=datafiles / 'sim09' / 'psf' / 'sim09_r.psf'
+            psf_filename=datafiles / 'sim09' / 'psf' / 'sim09_r.psf'
         )
         assert run.exit_code == 0
 
