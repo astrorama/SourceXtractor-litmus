@@ -86,13 +86,10 @@ def test_auto_magnitude(frame, multi_frame_catalog, sim09_r_reference, multi_fra
     catalog_hits = multi_frame_catalog[multi_frame_cross.all_catalog]
     ref_hits = sim09_r_reference[sim09_r_cross.all_catalog]
 
-    target_filter = (catalog_hits['auto_flags'][:, frame] == 0)
+    target_filter = (np.isnan(catalog_hits['auto_mag'][:, frame]) == False)
 
     catalog_mag = catalog_hits['auto_mag'][:, frame]
     ref_mag = ref_hits['MAG_ISO']
-
-    # We have used the flags to filter, so no nan should be there
-    assert not np.isnan(catalog_mag[target_filter]).any()
 
     catalog_mag_diff = catalog_mag[target_filter] - multi_frame_cross.all_magnitudes[target_filter]
     ref_mag_diff = ref_mag - sim09_r_cross.all_magnitudes
@@ -112,18 +109,20 @@ def test_aper_magnitude(frame, aper_idx, multi_frame_catalog, sim09_r_reference,
     catalog_hits = multi_frame_catalog[multi_frame_cross.all_catalog]
     ref_hits = sim09_r_reference[sim09_r_cross.all_catalog]
 
-    target_filter = (catalog_hits['aperture_flags'][:, frame, aper_idx] == 0)
+    target_filter = (np.isnan(catalog_hits['aperture_mag'][:, frame, aper_idx]) == False)
 
     catalog_mag = catalog_hits['aperture_mag'][:, frame, aper_idx]
+    catalog_mag_err = catalog_hits['aperture_mag_err'][:, frame, aper_idx]
     ref_mag = ref_hits['MAG_APER'][:, aper_idx]
-
-    # We have used the flags to filter, so no nan should be there
-    assert not np.isnan(catalog_mag[target_filter]).any()
+    ref_mag_err = ref_hits['MAGERR_APER'][:, aper_idx]
 
     catalog_mag_diff = catalog_mag[target_filter] - multi_frame_cross.all_magnitudes[target_filter]
     ref_mag_diff = ref_mag - sim09_r_cross.all_magnitudes
 
-    assert np.median(catalog_mag_diff) <= np.median(ref_mag_diff) * (1 + tolerances['magnitude'])
+    catalog_chi2 = catalog_mag_diff ** 2 / catalog_mag_err[target_filter] ** 2
+    ref_chi2 = ref_mag_diff ** 2 / ref_mag_err ** 2
+
+    assert np.median(catalog_chi2) < np.median(ref_chi2)
 
 
 def test_generate_report(multi_frame_catalog, sim09_r_reference, sim09_r_simulation, datafiles, module_output_area):
