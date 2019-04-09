@@ -149,3 +149,13 @@ def tolerances(test_configuration):
         'distance': float(test_configuration.get('tolerances', 'distance')),
         'signal_to_noise': float(test_configuration.get('tolerances', 'signal_to_noise'))
     }
+
+
+@pytest.fixture(scope='session')
+def simulation_mag_zeropoint(test_configuration):
+    return float(test_configuration.get('simulation', 'mag_zeropoint'))
+
+
+@pytest.fixture(scope='session')
+def simulation_exposure(test_configuration):
+    return float(test_configuration.get('simulation', 'exposure'))

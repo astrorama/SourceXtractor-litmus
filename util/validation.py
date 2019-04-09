@@ -29,6 +29,10 @@ class CrossValidation(object):
         def all_magnitudes(self):
             return np.append(self.stars_found.mag, self.galaxies_found.mag)
 
+        @property
+        def all_fluxes(self):
+            return np.append(self.stars_found.flux, self.galaxies_found.flux)
+
     def __init__(self, image, simulation, max_dist=0.5, bin_size=1):
         if isinstance(image, str) or isinstance(image, Path):
             self.__image = Image(image)
@@ -38,10 +42,10 @@ class CrossValidation(object):
         self.__max_dist = max_dist
 
         self.stars = self.__image.get_contained_sources(
-            simulation.stars.ra, simulation.stars.dec, mag=simulation.stars.mag
+            simulation.stars.ra, simulation.stars.dec, mag=simulation.stars.mag, flux=simulation.stars.flux
         )
         self.galaxies = self.__image.get_contained_sources(
-            simulation.galaxies.ra, simulation.galaxies.dec, mag=simulation.galaxies.mag
+            simulation.galaxies.ra, simulation.galaxies.dec, mag=simulation.galaxies.mag, flux=simulation.galaxies.flux
         )
         self.__all_mag = np.append(self.stars.mag, self.galaxies.mag)
 
@@ -124,3 +128,15 @@ class CrossValidation(object):
             self.galaxies[galaxies_found], self.galaxies[galaxies_not_found], galaxies_recall, galaxies_catalog,
             misids
         )
+
+
+def intersect(a: CrossValidation.CrossValidationResult, b):
+    """
+    Intersect two CrossValidationResult
+    :return:
+        Index of a and index of b that belong to the intersection
+    """
+    _, a_stars, b_stars = np.intersect1d(a.stars_found, b.stars_found, return_indices=True)
+    _, a_galaxies, b_galaxies = np.intersect1d(a.galaxies_found, b.galaxies_found, return_indices=True)
+    return np.append(a_stars, a_galaxies + len(a.stars_found)), \
+           np.append(b_stars, b_galaxies + len(b.stars_found))

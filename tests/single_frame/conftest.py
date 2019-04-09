@@ -6,11 +6,11 @@ from util.validation import CrossValidation
 
 
 @pytest.fixture(scope='session')
-def sim09_r_simulation(datafiles):
+def sim09_r_simulation(datafiles, simulation_mag_zeropoint, simulation_exposure):
     """
     Fixture for the original stuff simulation
     """
-    return stuff.Simulation(datafiles / 'sim09' / 'sim09_r.list')
+    return stuff.Simulation(datafiles / 'sim09' / 'sim09_r.list', simulation_mag_zeropoint, simulation_exposure)
 
 
 @pytest.fixture(scope='session')

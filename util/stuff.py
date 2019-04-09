@@ -50,9 +50,15 @@ class Sex2SourceFlags(IntFlag):
 
 
 class Simulation(object):
-    def __init__(self, path):
+    def __init__(self, path, mag_zeropoint, exposure):
         """
         Parses a Stuff input file. See https://www.astromatic.net/software/stuff
+        :param path:
+            Path to the .list simulation data
+        :param mag_zeropoint:
+            Used to compute the flux
+        :param exposure:
+            Used to compute the flux
         """
         logger.debug(f'Loading stuff list from {path}')
         stars_raw, galaxies_raw = [], []
@@ -69,16 +75,17 @@ class Simulation(object):
         logger.debug(f'Loaded {len(galaxies_raw)} galaxies')
 
         self.__stars = np.recarray((len(stars_raw),), dtype=[
-            ('ra', float), ('dec', float), ('mag', float)
+            ('ra', float), ('dec', float), ('mag', float), ('flux', float)
         ])
         self.__galaxies = np.recarray((len(galaxies_raw),), dtype=[
-            ('ra', float), ('dec', float), ('mag', float), ('bt_ratio', float),
-            ('bulge', float), ('bulge_aspect', float), ('disk', float), ('disk_aspect', float),
+            ('ra', float), ('dec', float), ('mag', float), ('flux', float),
+            ('bt_ratio', float), ('bulge', float), ('bulge_aspect', float), ('disk', float), ('disk_aspect', float),
             ('redshift', float), ('type', float)
         ])
 
         for i, s in enumerate(stars_raw):
             self.__stars[i].ra, self.__stars[i].dec, self.__stars[i].mag = float(s[1]), float(s[2]), float(s[3])
+        self.__stars.flux = exposure * np.power(10, (self.__stars.mag - mag_zeropoint) / -2.5)
 
         for i, g in enumerate(galaxies_raw):
             self.__galaxies[i].ra, self.__galaxies[i].dec = float(g[1]), float(g[2])
@@ -88,6 +95,7 @@ class Simulation(object):
             self.__galaxies[i].disk, self.__galaxies[i].disk_aspect = float(g[8]), float(g[9])
             self.__galaxies[i].redshift = float(g[11])
             self.__galaxies[i].type = float(g[12])
+        self.__galaxies.flux = exposure * np.power(10, (self.__galaxies.mag - mag_zeropoint) / -2.5)
 
         all_coords = np.column_stack([
             np.append(self.__stars.ra, self.__galaxies.ra),
