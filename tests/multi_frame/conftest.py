@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 from astropy.table import Table
 
@@ -7,19 +6,19 @@ from util.validation import CrossValidation
 
 
 @pytest.fixture(scope='session')
-def sim09_r_simulation(datafiles):
+def sim09_r_simulation(datafiles, simulation_mag_zeropoint, simulation_exposure):
     """
     Fixture for the original stuff simulation
     """
-    return stuff.Simulation(datafiles / 'sim09' / 'sim09_r.list')
+    return stuff.Simulation(datafiles / 'sim09' / 'sim09_r.list', simulation_mag_zeropoint, simulation_exposure)
 
 
 @pytest.fixture(scope='session')
-def sim09_g_simulation(datafiles):
+def sim09_g_simulation(datafiles, simulation_mag_zeropoint, simulation_exposure):
     """
     Fixture for the original stuff simulation
     """
-    return stuff.Simulation(datafiles / 'sim09' / 'sim09_g.list')
+    return stuff.Simulation(datafiles / 'sim09' / 'sim09_g.list', simulation_mag_zeropoint, simulation_exposure)
 
 
 @pytest.fixture(scope='session')
