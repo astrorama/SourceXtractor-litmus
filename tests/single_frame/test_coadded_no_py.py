@@ -48,14 +48,6 @@ def coadded_frame_cross(coadded_catalog, sim09_r_simulation, datafiles, toleranc
     return cross(coadded_catalog['pixel_centroid_x'], coadded_catalog['pixel_centroid_y'])
 
 
-def test_detection(coadded_frame_cross, sim09_r_cross):
-    """
-    Test that the number of results matches the ref, and that they are reasonably close
-    """
-    assert len(coadded_frame_cross.stars_found) >= len(sim09_r_cross.stars_found)
-    assert len(coadded_frame_cross.galaxies_found) >= len(sim09_r_cross.galaxies_found)
-
-
 @pytest.mark.parametrize(
     ['mag_column', 'reference_mag_column'], [
         [['isophotal_mag', 'isophotal_mag_err'], ['MAG_ISO', 'MAGERR_ISO']],

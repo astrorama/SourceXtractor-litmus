@@ -1,5 +1,4 @@
 import itertools
-import logging
 import os
 
 import numpy as np
@@ -49,30 +48,28 @@ def multi_frame_cross(multi_frame_catalog, sim09_r_simulation, datafiles, tolera
     return cross(multi_frame_catalog['pixel_centroid_x'], multi_frame_catalog['pixel_centroid_y'])
 
 
-def test_detection(multi_frame_cross, sim09_r_cross):
-    """
-    Test that the number of results matches the ref, and that they are reasonably close
-    """
-    assert len(multi_frame_cross.stars_found) >= len(sim09_r_cross.stars_found)
-    assert len(multi_frame_cross.galaxies_found) >= len(sim09_r_cross.galaxies_found)
-
-
-def test_iso_magnitude(multi_frame_catalog, sim09_r_reference, multi_frame_cross, sim09_r_cross, tolerances):
+def test_iso_flux(multi_frame_catalog, sim09_r_reference, multi_frame_cross, sim09_r_cross):
     """
     Cross-validate the magnitude columns. The measured magnitudes should be at least as close
     to the truth as the ref catalog (within a tolerance).
     ISO is measured on the detection frame
     """
-    catalog_hits = multi_frame_catalog[multi_frame_cross.all_catalog]
-    ref_hits = sim09_r_reference[sim09_r_cross.all_catalog]
+    catalog_intersect, ref_intersect = intersect(multi_frame_cross, sim09_r_cross)
+    catalog_hits = multi_frame_catalog[multi_frame_cross.all_catalog[catalog_intersect]]
+    ref_hits = sim09_r_reference[sim09_r_cross.all_catalog[ref_intersect]]
 
-    catalog_mag = catalog_hits['isophotal_mag']
-    ref_mag = ref_hits['MAG_ISO']
+    assert len(catalog_hits) == len(ref_hits)
 
-    catalog_mag_diff = catalog_mag - multi_frame_cross.all_magnitudes
-    ref_mag_diff = ref_mag - sim09_r_cross.all_magnitudes
+    catalog_flux = catalog_hits['isophotal_flux']
+    catalog_flux_err = catalog_hits['isophotal_flux_err']
+    ref_flux = ref_hits['FLUX_ISO']
+    ref_flux_err = ref_hits['FLUXERR_ISO']
+    real_flux = sim09_r_cross.all_fluxes[ref_intersect]
 
-    assert np.median(catalog_mag_diff) <= np.median(ref_mag_diff) * (1 + tolerances['magnitude'])
+    catalog_dist = np.sqrt((catalog_flux - real_flux) ** 2 / catalog_flux_err ** 2)
+    ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
+
+    assert np.median(catalog_dist - ref_dist) <= 1e-6
 
 
 @pytest.mark.parametrize(
@@ -98,35 +95,34 @@ def test_auto_flux(frame, multi_frame_catalog, sim09_r_reference, multi_frame_cr
     catalog_dist = np.sqrt((catalog_flux - real_flux) ** 2 / catalog_flux_err ** 2)
     ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
 
-    assert np.median(catalog_dist - ref_dist) <= 0.
+    assert np.median(catalog_dist - ref_dist) <= 1e-6
 
 
 @pytest.mark.parametrize(
     ['frame', 'aper_idx'], itertools.product(range(10), [0, 1, 2])
 )
-def test_aper_magnitude(frame, aper_idx, multi_frame_catalog, sim09_r_reference, multi_frame_cross, sim09_r_cross,
-                        tolerances):
+def test_aper_flux(frame, aper_idx, multi_frame_catalog, sim09_r_reference, multi_frame_cross, sim09_r_cross):
     """
     APERTURE is measured on the measurement frames, so it is trickier. Need to run the test for each
     frame, and filter out sources that are on the boundary or outside.
     """
-    catalog_hits = multi_frame_catalog[multi_frame_cross.all_catalog]
-    ref_hits = sim09_r_reference[sim09_r_cross.all_catalog]
+    catalog_intersect, ref_intersect = intersect(multi_frame_cross, sim09_r_cross)
+    catalog_hits = multi_frame_catalog[multi_frame_cross.all_catalog[catalog_intersect]]
+    ref_hits = sim09_r_reference[sim09_r_cross.all_catalog[ref_intersect]]
 
-    target_filter = (np.isnan(catalog_hits['aperture_mag'][:, frame, aper_idx]) == False)
+    inframe_filter = (catalog_hits['aperture_flags'][:, frame, aper_idx] == 0)
 
-    catalog_mag = catalog_hits['aperture_mag'][:, frame, aper_idx]
-    catalog_mag_err = catalog_hits['aperture_mag_err'][:, frame, aper_idx]
-    ref_mag = ref_hits['MAG_APER'][:, aper_idx]
-    ref_mag_err = ref_hits['MAGERR_APER'][:, aper_idx]
+    catalog_flux = catalog_hits['aperture_flux'][:, frame, aper_idx][inframe_filter]
+    catalog_flux_err = catalog_hits['aperture_flux_err'][:, frame, aper_idx][inframe_filter]
+    ref_flux = ref_hits['FLUX_APER'][inframe_filter][:, aper_idx]
+    ref_flux_err = ref_hits['FLUXERR_APER'][inframe_filter][:, aper_idx]
+    real_flux = sim09_r_cross.all_fluxes[ref_intersect[inframe_filter]]
 
-    catalog_mag_diff = catalog_mag[target_filter] - multi_frame_cross.all_magnitudes[target_filter]
-    ref_mag_diff = ref_mag - sim09_r_cross.all_magnitudes
+    catalog_dist = np.sqrt((catalog_flux - real_flux) ** 2 / catalog_flux_err ** 2)
+    ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
 
-    catalog_chi2 = catalog_mag_diff ** 2 / catalog_mag_err[target_filter] ** 2
-    ref_chi2 = ref_mag_diff ** 2 / ref_mag_err ** 2
-
-    assert np.median(catalog_chi2) < np.median(ref_chi2)
+    assert (catalog_dist > 0).all()
+    assert np.median(catalog_dist - ref_dist) <= 1e-6
 
 
 def test_generate_report(multi_frame_catalog, sim09_r_reference, sim09_r_simulation, datafiles, module_output_area):

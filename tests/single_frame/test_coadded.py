@@ -41,24 +41,6 @@ def coadded_catalog(sextractorxx, datafiles, module_output_area, tolerances):
     return catalog[bright_filter]
 
 
-@pytest.fixture
-def coadded_frame_cross(coadded_catalog, sim09_r_simulation, datafiles, tolerances):
-    image = Image(
-        datafiles / 'sim09' / 'img' / 'sim09_r.fits',
-        weight_image=datafiles / 'sim09' / 'img' / 'sim09_r.weight.fits'
-    )
-    cross = CrossValidation(image, sim09_r_simulation, max_dist=tolerances['distance'])
-    return cross(coadded_catalog['pixel_centroid_x'], coadded_catalog['pixel_centroid_y'])
-
-
-def test_detection(coadded_frame_cross, sim09_r_cross):
-    """
-    Test that the number of results matches the ref, and that they are reasonably close
-    """
-    assert len(coadded_frame_cross.stars_found) >= len(sim09_r_cross.stars_found)
-    assert len(coadded_frame_cross.galaxies_found) >= len(sim09_r_cross.galaxies_found)
-
-
 @pytest.mark.parametrize(
     ['mag_column', 'reference_mag_column'], [
         [['isophotal_mag', 'isophotal_mag_err'], ['MAG_ISO', 'MAGERR_ISO']],
