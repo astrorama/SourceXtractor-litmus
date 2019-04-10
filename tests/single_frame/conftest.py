@@ -2,6 +2,7 @@ import pytest
 from astropy.table import Table
 
 from util import stuff
+from util.image import Image
 from util.validation import CrossValidation
 
 
@@ -49,3 +50,13 @@ def sim09_r_cross(sim09_r_reference, sim09_r_simulation, datafiles, tolerances):
         max_dist=tolerances['distance']
     )
     return cross(sim09_r_reference['X_IMAGE'], sim09_r_reference['Y_IMAGE'])
+
+
+@pytest.fixture
+def coadded_frame_cross(coadded_catalog, sim09_r_simulation, datafiles, tolerances):
+    image = Image(
+        datafiles / 'sim09' / 'img' / 'sim09_r.fits',
+        weight_image=datafiles / 'sim09' / 'img' / 'sim09_r.weight.fits'
+    )
+    cross = CrossValidation(image, sim09_r_simulation, max_dist=tolerances['distance'])
+    return cross(coadded_catalog['pixel_centroid_x'], coadded_catalog['pixel_centroid_y'])

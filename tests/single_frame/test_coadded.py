@@ -7,7 +7,7 @@ from astropy.table import Table
 from util import plot
 from util.catalog import get_column
 from util.image import Image
-from util.validation import CrossValidation
+from util.validation import CrossValidation, intersect
 
 
 @pytest.fixture
@@ -42,31 +42,34 @@ def coadded_catalog(sextractorxx, datafiles, module_output_area, tolerances):
 
 
 @pytest.mark.parametrize(
-    ['mag_column', 'reference_mag_column'], [
-        [['isophotal_mag', 'isophotal_mag_err'], ['MAG_ISO', 'MAGERR_ISO']],
-        [['auto_mag', 'auto_mag_err'], ['MAG_AUTO', 'MAGERR_AUTO']]
+    ['flux_column', 'reference_flux_column'], [
+        [['isophotal_flux', 'isophotal_flux_err'], ['FLUX_ISO', 'FLUXERR_ISO']],
+        [['auto_flux', 'auto_flux_err'], ['FLUX_AUTO', 'FLUXERR_AUTO']],
     ]
 )
-def test_magnitude(coadded_catalog, sim09_r_reference, mag_column, reference_mag_column, coadded_frame_cross,
-                   sim09_r_cross, tolerances):
+def test_flux(coadded_catalog, sim09_r_reference, flux_column, reference_flux_column, coadded_frame_cross,
+              sim09_r_cross):
     """
     Cross-validate the magnitude columns. The measured magnitudes should be at least as close
     to the truth as the ref catalog (within a tolerance).
     We use only the hits, and ignore the detections that are a miss.
     """
+    catalog_intersect, ref_intersect = intersect(coadded_frame_cross, sim09_r_cross)
+    catalog_hits = coadded_catalog[coadded_frame_cross.all_catalog[catalog_intersect]]
+    ref_hits = sim09_r_reference[sim09_r_cross.all_catalog[ref_intersect]]
 
-    # We use only those sources that are a hit, and do not bother to compare
-    # others
-    catalog_hits = coadded_catalog[coadded_frame_cross.all_catalog]
-    ref_hits = sim09_r_reference[sim09_r_cross.all_catalog]
+    assert len(catalog_hits) == len(ref_hits)
 
-    catalog_mag = get_column(catalog_hits, mag_column[0])
-    ref_mag = get_column(ref_hits, reference_mag_column[0])
+    catalog_flux = get_column(catalog_hits, flux_column[0])
+    catalog_flux_err = get_column(catalog_hits, flux_column[1])
+    ref_flux = get_column(ref_hits, reference_flux_column[0])
+    ref_flux_err = get_column(ref_hits, reference_flux_column[1])
+    real_flux = sim09_r_cross.all_fluxes[ref_intersect]
 
-    catalog_mag_diff = catalog_mag - coadded_frame_cross.all_magnitudes
-    ref_mag_diff = ref_mag - sim09_r_cross.all_magnitudes
+    catalog_dist = np.sqrt((catalog_flux - real_flux) ** 2 / catalog_flux_err ** 2)
+    ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
 
-    assert np.median(catalog_mag_diff) <= np.median(ref_mag_diff) * (1 + tolerances['magnitude'])
+    assert np.median(catalog_dist - ref_dist) <= 1e-6
 
 
 def test_generate_report(coadded_catalog, sim09_r_reference, sim09_r_simulation, datafiles, module_output_area):
