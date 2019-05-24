@@ -22,7 +22,7 @@ def test_version(sextractorxx):
     """
     run = sextractorxx('--version')
     assert run.exit_code == 0
-    assert re.match('^SExtractorxx \d+\.\d+(\.\d+)?$', run.stdout) is not None
+    assert re.match('^SExtractorxx \d+\.?\d+(\.\d+)?$', run.stdout) is not None
 
 
 def test_list_properties(sextractorxx):
