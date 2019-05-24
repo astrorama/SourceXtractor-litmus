@@ -67,7 +67,7 @@ def test_external_bad_size(sextractorxx, datafiles):
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
         flag_type_test='OR'
     )
-    assert run.exit_code > 0
+    assert run.exit_code != 0
 
 
 def test_external_or(sextractorxx, datafiles):
