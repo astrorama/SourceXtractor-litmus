@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from iniparse import SafeConfigParser
+from configparser import ConfigParser
 
 from util import stuff
 from util.bin import Executable
@@ -11,7 +11,7 @@ from util.bin import Executable
 
 @pytest.fixture(scope='session')
 def test_configuration(request):
-    config = SafeConfigParser()
+    config = ConfigParser()
     config.read([request.config.inifile])
     return config
 
@@ -35,7 +35,7 @@ def module_output_area(request, test_configuration):
     area = Path(os.path.expandvars(test_configuration.get('sextractorxx', 'output_area')))
     for c in request.node.listchain():
         if isinstance(c, pytest.Module):
-            area = area / c.name
+            area = area / os.path.basename(c.name)
     return area
 
 
