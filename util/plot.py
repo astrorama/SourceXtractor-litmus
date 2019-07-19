@@ -704,14 +704,14 @@ class Completeness(Plot):
         ax.imshow(self.__image.for_display(), cmap=_img_cmap)
         ss = ax.scatter(
             missing_stars.x, missing_stars.y, c=missing_stars.mag, norm=norm, cmap=_mag_cmap,
-            marker='H', label='Stars', facecolors='none'
+            marker='H', label='Stars',# facecolors='none'
         )
-        ss.set_facecolor('none')
+        #ss.set_facecolor('none')
         gs = ax.scatter(
             missing_galaxies.x, missing_galaxies.y, c=missing_galaxies.mag, norm=norm, cmap=_mag_cmap,
-            marker='o', label='Galaxies', facecolors='none'
+            marker='o', label='Galaxies',# facecolors='none'
         )
-        gs.set_facecolor('none')
+        #gs.set_facecolor('none')
 
         # Sprinkle found, just to see nearby identified sources
         ax.scatter(
@@ -751,7 +751,7 @@ class Completeness(Plot):
         for label, crossval in self.__missing:
             fig_missing = plt.figure(figsize=_page_size)
             ax_missing = fig_missing.add_subplot(1, 1, 1)
-            ax_missing.set_title(f'Missing/offset sources for {label}')
+            ax_missing.set_title(f'Missing/too far sources for {label}')
             self.__plot_missing(
                 fig_missing, ax_missing, crossval
             )
