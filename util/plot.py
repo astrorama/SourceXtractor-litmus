@@ -100,10 +100,15 @@ class Report(object):
         :param plot:
             A Plot instance
         """
-        assert isinstance(plot, Plot)
-        for fig in plot.get_figures():
-            self.__pdf.savefig(fig)
-            plt.close(fig)
+        if isinstance(plot, Plot):
+            for fig in plot.get_figures():
+                self.__pdf.savefig(fig)
+                plt.close(fig)
+        elif isinstance(plot, plt.Figure):
+            self.__pdf.savefig(plot)
+            plt.close(plot)
+        else:
+            raise ValueError('Only objects of type Plot or Figure are accepted, got {}'.format(type(plot)))
 
 
 class Location(Plot):

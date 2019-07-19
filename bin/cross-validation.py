@@ -5,6 +5,8 @@ import os
 import platform
 import subprocess
 import sys
+import mprof
+import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 from astropy.table import Table
@@ -20,6 +22,25 @@ def open_with_system(path):
         subprocess.call(['open', path])
     elif platform.system() == 'Linux':
         subprocess.call(['xdg-open', path])
+
+
+def plot_mprof(title, mprof_data):
+    """
+    Plot mprof data
+    """
+    mem_usage = mprof_data['mem_usage']
+    mem_ts = mprof_data['timestamp']
+    start = mem_ts[0]
+    mem_ts = [ts - start for ts in mem_ts]
+    max_ts = max(mem_ts)
+    # Memory
+    figure = plt.figure(figsize=plot._page_size)
+    plt.title(f'Runtime profile for {title}')
+    plt.plot(mem_ts, mem_usage)
+    plt.xlabel(f'Time in seconds (up to {max_ts:.2f}s)')
+    plt.ylabel('Memory in MiB')
+
+    return figure
 
 
 if __name__ == '__main__':
@@ -46,6 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('--wc-delta', type=str, default='world_centroid_delta', help='Wold coordinate Declination')
     parser.add_argument('--magnitude', type=str, default='mf_mag_r', help='Magnitude')
     parser.add_argument('--magnitude-error', type=str, default='mf_mag_r_err', help='Magnitude error')
+    parser.add_argument('--mprof', type=str, action='append', metavar='MPROF', help='mprof profiling data, same order as catalogs')
     parser.add_argument('catalog', type=str, nargs='+', metavar='CATALOG', help='Catalogs to cross-match')
 
     args = parser.parse_args()
@@ -58,11 +80,20 @@ if __name__ == '__main__':
         logging.info(f'Loading catalog {catalog_path}')
         catalogs.append((os.path.basename(catalog_path), Table.read(catalog_path)))
 
+    if args.mprof and len(args.mprof) != len(args.catalog):
+        parser.error('Same number of mprof files than catalogs is required')
+
     logging.info(f'Loading detection image {args.detection_image} with weight {args.weight_image}')
     image = plot.Image(args.detection_image, args.weight_image)
 
     log.info(f'Creating report {args.output}')
     with plot.Report(args.output) as report:
+        # Profile
+        if args.mprof:
+            for (catalog_name, _), mprof_path in zip(catalogs, args.mprof):
+                mprof_data = mprof.read_mprofile_file(mprof_path)
+                report.add(plot_mprof(catalog_name, mprof_data))
+
         # Location
         markers = itertools.cycle('1234')
         loc_map = plot.Location(image, reference)
