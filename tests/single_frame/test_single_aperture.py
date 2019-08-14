@@ -1,11 +1,3 @@
-#
-# This test is almost identical to test_single_frame_no_py but it *DOES*
-# use the measurement configuration file,.
-#
-# The reason for this two separate runs is that the pre-release emitted different
-# when the measurement frame matched the detection image, and when it was configured
-# separately
-#
 import os
 
 import numpy as np
@@ -31,9 +23,9 @@ def single_frame_catalog(sextractorxx, datafiles, module_output_area, tolerances
     output_catalog = module_output_area / 'output.fits'
     if not os.path.exists(output_catalog):
         run = sextractorxx(
-            output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
+            output_properties='SourceIDs,PixelCentroid,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
             detection_image=detection_image,
-            python_config_file=datafiles / 'sim09' / 'sim09_single.py'
+            python_config_file=datafiles / 'sim09' / 'sim09_single_aperture.py'
         )
         assert run.exit_code == 0
 
@@ -49,21 +41,10 @@ def single_frame_cross(single_frame_catalog, sim09_r_simulation, datafiles, tole
     return cross(single_frame_catalog['pixel_centroid_x'], single_frame_catalog['pixel_centroid_y'])
 
 
-def test_detection(single_frame_cross, sim09_r_01_cross):
-    """
-    Test that the number of results matches the ref, and that they are reasonably close
-    """
-    assert len(single_frame_cross.stars_found) >= len(sim09_r_01_cross.stars_found)
-    assert len(single_frame_cross.galaxies_found) >= len(sim09_r_01_cross.galaxies_found)
-
-
 @pytest.mark.parametrize(
     ['flux_column', 'reference_flux_column'], [
         [['isophotal_flux', 'isophotal_flux_err'], ['FLUX_ISO', 'FLUXERR_ISO']],
-        [['auto_flux', 'auto_flux_err'], ['FLUX_AUTO', 'FLUXERR_AUTO']],
-        [['aperture_flux:0:0', 'aperture_flux_err:0:0'], ['FLUX_APER:0', 'FLUXERR_APER:0']],
-        [['aperture_flux:0:1', 'aperture_flux_err:0:1'], ['FLUX_APER:1', 'FLUXERR_APER:1']],
-        [['aperture_flux:0:2', 'aperture_flux_err:0:2'], ['FLUX_APER:0', 'FLUXERR_APER:2']],
+        [['aperture_flux', 'aperture_flux_err'], ['FLUX_APER:0', 'FLUXERR_APER:0']],
     ]
 )
 def test_flux(single_frame_catalog, single_frame_cross, sim09_r_01_reference, sim09_r_01_cross,
@@ -84,17 +65,9 @@ def test_flux(single_frame_catalog, single_frame_cross, sim09_r_01_reference, si
     ref_flux_err = get_column(ref_hits, reference_flux_column[1])
     real_flux = sim09_r_01_cross.all_fluxes[ref_intersect]
 
+    assert catalog_flux.shape == (len(catalog_flux),)
+
     catalog_dist = np.sqrt((catalog_flux - real_flux) ** 2 / catalog_flux_err ** 2)
     ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
 
     assert np.median(catalog_dist - ref_dist) <= 0.
-
-
-def test_generate_report(single_frame_catalog, sim09_r_01_reference, sim09_r_simulation, datafiles, module_output_area):
-    """
-    Not quite a test. Generate a PDF report to allow for better insights.
-    """
-    plot.generate_report(
-        module_output_area / 'report.pdf', sim09_r_simulation, datafiles / 'sim09' / 'img' / 'sim09_r_01.fits',
-        single_frame_catalog, sim09_r_01_reference
-    )
