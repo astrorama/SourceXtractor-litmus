@@ -70,7 +70,7 @@ def test_blended(sextractorxx, datafiles):
         output_properties='SourceIDs,PixelCentroid,SourceFlags',
         detection_threshold=2,
         partition_multithreshold=True,
-        detect_minarea=80
+        detection_minimum_area=100
     )
     assert run.exit_code == 0
 

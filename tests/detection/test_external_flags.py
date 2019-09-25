@@ -16,19 +16,6 @@ def test_external_missing_file(sextractorxx, datafiles):
     assert 'does not exist' in run.stderr
 
 
-def test_external_missing_type(sextractorxx, datafiles):
-    """
-    Ask for external flags, but pass an invalid file.
-    """
-    run = sextractorxx(
-        detection_image=datafiles / 'simple' / 'saturated.fits',
-        output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
-        flag_image_test='/tmp/does/not/exist.fits'
-    )
-    assert run.exit_code > 0
-    assert 'Missing option flag-type-test' in run.stderr
-
-
 def test_external_bad_operator(sextractorxx, datafiles):
     """
     Ask for external flags, but pass an invalid operator.

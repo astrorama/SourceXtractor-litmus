@@ -47,20 +47,6 @@ def test_invalid(sextractorxx):
     assert 'unrecognised' in run.stderr
 
 
-@pytest.mark.regression
-def test_psf_pixel_scale_missing(sextractorxx, datafiles):
-    """
-    Regression test: --psf-fwhm without --psf-pixel-scale segfaulted
-    """
-    single_source_fits = datafiles / 'simple' / 'saturated.fits'
-
-    run = sextractorxx(
-        detection_image=single_source_fits,
-        psf_fwhm='2', psf_pixel_scale=None,
-    )
-    assert run.exit_code > 0
-
-
 def test_missing_detection_image(sextractorxx):
     """
     Pass a detection image that does not exist.

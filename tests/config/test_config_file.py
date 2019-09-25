@@ -7,7 +7,7 @@ def test_missing_config_file(sextractorxx):
     """
     run = sextractorxx(config_file='/etc/this/does/not/exist.config')
     assert run.exit_code > 0
-    assert 'does not exist' in run.stderr
+    assert 'doesn\'t exist' in run.stderr
 
 
 def test_malformed_config_file(sextractorxx):
