@@ -9,17 +9,17 @@ from util.validation import CrossValidation
 
 
 @pytest.fixture
-def modelfitting_catalog(sextractorxx, datafiles, module_output_area, tolerances):
+def modelfitting_catalog(sourcextractor, datafiles, module_output_area, tolerances):
     """
-    Run sextractorxx on a single frame. Overrides the output area per test so
+    Run sourcextractor on a single frame. Overrides the output area per test so
     SExtractor is only run once for this setup.
     The output is filtered by signal/noise.
     """
-    sextractorxx.set_output_directory(module_output_area)
+    sourcextractor.set_output_directory(module_output_area)
 
     output_catalog = module_output_area / 'output.fits'
     if not os.path.exists(output_catalog):
-        run = sextractorxx(
+        run = sourcextractor(
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting',
             detection_image=datafiles / 'sim09' / 'img' / 'sim09_r_01.fits',
             python_config_file=datafiles / 'sim09' / 'sim09_single_modelfitting.py'

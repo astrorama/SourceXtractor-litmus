@@ -32,7 +32,7 @@ def module_output_area(request, test_configuration):
     """
     Generate a path where a test module should store its output files
     """
-    area = Path(os.path.expandvars(test_configuration.get('sextractorxx', 'output_area')))
+    area = Path(os.path.expandvars(test_configuration.get('sourcextractor', 'output_area')))
     for c in request.node.listchain():
         if isinstance(c, pytest.Module):
             area = area / os.path.basename(c.name)
@@ -40,10 +40,10 @@ def module_output_area(request, test_configuration):
 
 
 @pytest.fixture(scope='session')
-def sextractorxx_defaults(test_configuration, datafiles):
+def sourcextractor_defaults(test_configuration, datafiles):
     os.environ['DATADIR'] = str(datafiles)
     cfg = {}
-    with open(test_configuration.get('sextractorxx', 'defaults')) as cfg_fd:
+    with open(test_configuration.get('sourcextractor', 'defaults')) as cfg_fd:
         for l in cfg_fd.readlines():
             if '#' in l:
                 l, _ = l.split('#', 2)
@@ -98,7 +98,7 @@ class SExtractorxx(object):
         else:
             if 'output_catalog_filename' not in cfg_args:
                 cfg_args['output_catalog_filename'] = self.__output_dir / 'output.fits'
-            cfg_file = self.__output_dir / 'sextractorxx.config'
+            cfg_file = self.__output_dir / 'sourcextractor.config'
             with open(cfg_file, 'w') as cfg_fd:
                 for k, v in cfg_args.items():
                     if v is not None:
@@ -115,27 +115,27 @@ class SExtractorxx(object):
 
 
 @pytest.fixture
-def sextractorxx(request, test_configuration, sextractorxx_defaults, module_output_area):
+def sourcextractor(request, test_configuration, sourcextractor_defaults, module_output_area):
     """
     Fixture for the SExtractor executable
     """
-    exe = Executable(os.path.expandvars(test_configuration.get('sextractorxx', 'binary')))
+    exe = Executable(os.path.expandvars(test_configuration.get('sourcextractor', 'binary')))
 
     test_output_area = module_output_area / request.node.name
     return SExtractorxx(
-        exe, os.path.expandvars(test_configuration.get('sextractorxx', 'pythonpath')),
+        exe, os.path.expandvars(test_configuration.get('sourcextractor', 'pythonpath')),
         test_output_area,
-        sextractorxx_defaults
+        sourcextractor_defaults
     )
 
 
 @pytest.fixture(scope='session')
-def sextractorxx_py(test_configuration):
-    python_path = os.path.expandvars(test_configuration.get('sextractorxx', 'pythonpath')).split(':')
+def sourcextractor_py(test_configuration):
+    python_path = os.path.expandvars(test_configuration.get('sourcextractor', 'pythonpath')).split(':')
     for pp in python_path:
         if pp not in sys.path:
             sys.path.append(pp)
-    mod = __import__('sextractorxx.config')
+    mod = __import__('sourcextractor.config')
     return mod.config
 
 

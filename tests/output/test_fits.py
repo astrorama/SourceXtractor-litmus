@@ -3,16 +3,16 @@ import numpy as np
 from astropy.io import fits
 
 
-def test_fits_output_catalog_filename(sextractorxx, datafiles):
+def test_fits_output_catalog_filename(sourcextractor, datafiles):
     """
     Run SExtractor asking for FITS output on a file
     """
     single_source_fits = datafiles / 'simple' / 'saturated.fits'
     assert os.path.exists(single_source_fits)
 
-    output_catalog = sextractorxx.get_output_directory() / 'output.fits'
+    output_catalog = sourcextractor.get_output_directory() / 'output.fits'
 
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=single_source_fits,
         output_catalog_format='FITS',
         output_catalog_filename=output_catalog,
@@ -33,18 +33,18 @@ def test_fits_output_catalog_filename(sextractorxx, datafiles):
     assert np.isclose(table['pixel_centroid_y'][0], 24.0353)
 
 
-def test_output_exists(sextractorxx, datafiles):
+def test_output_exists(sourcextractor, datafiles):
     """
     The output file already exists
     """
     single_source_fits = datafiles / 'simple' / 'saturated.fits'
-    output_catalog = sextractorxx.get_output_directory() / 'output.fits'
+    output_catalog = sourcextractor.get_output_directory() / 'output.fits'
 
-    os.makedirs(sextractorxx.get_output_directory(), exist_ok=True)
+    os.makedirs(sourcextractor.get_output_directory(), exist_ok=True)
     with open(output_catalog, 'w') as fd:
         fd.write('TOUCH')
 
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=single_source_fits,
         output_catalog_format='FITS',
         output_catalog_filename=output_catalog,

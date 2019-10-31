@@ -4,100 +4,100 @@ import pytest
 import re
 
 
-def test_help(sextractorxx):
+def test_help(sourcextractor):
     """
     Test the --help flag.
     The program must print the list of possible parameters and exit with 0.
     """
-    run = sextractorxx('--help')
+    run = sourcextractor('--help')
     assert run.exit_code == 0
     assert '--version' in run.stdout
     assert '--list-output-properties' in run.stdout
 
 
-def test_version(sextractorxx):
+def test_version(sourcextractor):
     """
     Test the --version flag.
     The program must print the version and exit with 0.
     """
-    run = sextractorxx('--version')
+    run = sourcextractor('--version')
     assert run.exit_code == 0
-    assert re.match('^SExtractorxx \d+\.?\d+(\.\d+)?$', run.stdout) is not None
+    assert re.match('^SourceXtractorPlusPlus \\d+\\.?\\d+(\\.\\d+)?$', run.stdout) is not None
 
 
-def test_list_properties(sextractorxx):
+def test_list_properties(sourcextractor):
     """
     Test the --list-properties flag.
     The program must print the list of possible properties and exit with 0.
     """
-    run = sextractorxx('--list-output-properties')
+    run = sourcextractor('--list-output-properties')
     assert run.exit_code == 0
     assert 'AutoPhotometry' in run.stdout
     assert 'SourceIDs' in run.stdout
     assert 'PixelCentroid' in run.stdout
 
 
-def test_invalid(sextractorxx):
+def test_invalid(sourcextractor):
     """
     Test an invalid flag (i.e --this-is-not-a-valid-flag).
     The program must exist with an error.
     """
-    run = sextractorxx('--this-is-not-a-valid-flag')
+    run = sourcextractor('--this-is-not-a-valid-flag')
     assert run.exit_code > 0
     assert 'unrecognised' in run.stderr
 
 
-def test_missing_detection_image(sextractorxx):
+def test_missing_detection_image(sourcextractor):
     """
     Pass a detection image that does not exist.
     """
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image='/tmp/does/surely/not/exist.fits'
     )
     assert run.exit_code > 0
 
 
-def test_malformed_detection_image(sextractorxx):
+def test_malformed_detection_image(sourcextractor):
     """
     Try opining a malformed image
     """
     malformed = tempfile.NamedTemporaryFile()
     malformed.write(b'\0')
     malformed.flush()
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=malformed.name
     )
     assert run.exit_code > 0
 
 
-def test_bad_segmentation_algorithm(sextractorxx):
+def test_bad_segmentation_algorithm(sourcextractor):
     """
     Pass a bad segmentation algorithm
     """
-    run = sextractorxx(
+    run = sourcextractor(
         segmentation_algorithm='UNKNOWN'
     )
     assert run.exit_code > 0
 
 
-def test_bad_segmentation_filter(sextractorxx):
+def test_bad_segmentation_filter(sourcextractor):
     """
     Pass a bad segmentation filter
     """
     malformed = tempfile.NamedTemporaryFile()
     malformed.write(b'abcdef')
     malformed.flush()
-    run = sextractorxx(
+    run = sourcextractor(
         segmentation_filter=malformed.name
     )
     assert run.exit_code > 0
 
 
-def test_bad_grouping_algorithm(sextractorxx):
+def test_bad_grouping_algorithm(sourcextractor):
     """
     Pass an invalid grouping algorithm
     """
-    run = sextractorxx(
+    run = sourcextractor(
         grouping_algorihtm='UNKNOWN'
     )
     assert run.exit_code > 0

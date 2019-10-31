@@ -3,14 +3,14 @@ import numpy as np
 from astropy.io import ascii
 
 
-def test_ascii_output_stdout(sextractorxx, datafiles):
+def test_ascii_output_stdout(sourcextractor, datafiles):
     """
     Run SExtractor asking for ASCII output on the standard output
     """
     single_source_fits = datafiles / 'simple' / 'saturated.fits'
     assert os.path.exists(single_source_fits)
 
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=single_source_fits,
         output_catalog_format='ASCII',
         output_catalog_filename='',
@@ -27,16 +27,16 @@ def test_ascii_output_stdout(sextractorxx, datafiles):
     assert np.isclose(table[0][3], 24.0353)
 
 
-def test_ascii_output_catalog_filename(sextractorxx, datafiles):
+def test_ascii_output_catalog_filename(sourcextractor, datafiles):
     """
     Run SExtractor asking for ASCII output on a file
     """
     single_source_fits = datafiles / 'simple' / 'saturated.fits'
     assert os.path.exists(single_source_fits)
 
-    output_catalog = sextractorxx.get_output_directory() / 'output.txt'
+    output_catalog = sourcextractor.get_output_directory() / 'output.txt'
 
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=single_source_fits,
         output_catalog_format='ASCII',
         output_catalog_filename=output_catalog,
@@ -54,18 +54,18 @@ def test_ascii_output_catalog_filename(sextractorxx, datafiles):
     assert np.isclose(table[0][3], 24.0353)
 
 
-def test_output_exists(sextractorxx, datafiles):
+def test_output_exists(sourcextractor, datafiles):
     """
     The output file already exists
     """
     single_source_fits = datafiles / 'simple' / 'saturated.fits'
-    output_catalog = sextractorxx.get_output_directory() / 'output.txt'
+    output_catalog = sourcextractor.get_output_directory() / 'output.txt'
 
-    os.makedirs(sextractorxx.get_output_directory(), exist_ok=True)
+    os.makedirs(sourcextractor.get_output_directory(), exist_ok=True)
     with open(output_catalog, 'w') as fd:
         fd.write('TOUCH')
 
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=single_source_fits,
         output_catalog_format='ASCII',
         output_catalog_filename=output_catalog,

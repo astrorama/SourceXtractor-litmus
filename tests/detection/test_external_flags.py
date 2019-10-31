@@ -2,11 +2,11 @@ import numpy as np
 from astropy.table import Table
 
 
-def test_external_missing_file(sextractorxx, datafiles):
+def test_external_missing_file(sourcextractor, datafiles):
     """
     Ask for external flags, but pass an invalid file.
     """
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=datafiles / 'simple' / 'saturated.fits',
         output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test='/tmp/does/not/exist.fits',
@@ -16,11 +16,11 @@ def test_external_missing_file(sextractorxx, datafiles):
     assert 'does not exist' in run.stderr
 
 
-def test_external_bad_operator(sextractorxx, datafiles):
+def test_external_bad_operator(sourcextractor, datafiles):
     """
     Ask for external flags, but pass an invalid operator.
     """
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=datafiles / 'simple' / 'saturated.fits',
         output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
@@ -30,11 +30,11 @@ def test_external_bad_operator(sextractorxx, datafiles):
     assert 'Invalid option' in run.stderr
 
 
-def test_external_bad_file(sextractorxx, datafiles):
+def test_external_bad_file(sourcextractor, datafiles):
     """
     Pass an invalid FITS file
     """
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=datafiles / 'simple' / 'saturated.fits',
         output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'sim09' / 'default.param',
@@ -44,11 +44,11 @@ def test_external_bad_file(sextractorxx, datafiles):
     assert 'Can\'t open' in run.stderr
 
 
-def test_external_bad_size(sextractorxx, datafiles):
+def test_external_bad_size(sourcextractor, datafiles):
     """
     Pass a valid FITS file but with a wrong size
     """
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=datafiles / 'simple' / 'boundary.fits',
         output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
@@ -57,11 +57,11 @@ def test_external_bad_size(sextractorxx, datafiles):
     assert run.exit_code != 0
 
 
-def test_external_or(sextractorxx, datafiles):
+def test_external_or(sourcextractor, datafiles):
     """
     Test OR
     """
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=datafiles / 'simple' / 'saturated.fits',
         output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
@@ -69,7 +69,7 @@ def test_external_or(sextractorxx, datafiles):
     )
     assert run.exit_code == 0
 
-    catalog = Table.read(sextractorxx.get_output_catalog())
+    catalog = Table.read(sourcextractor.get_output_catalog())
     assert len(catalog) == 1
 
     source = catalog[0]
@@ -80,11 +80,11 @@ def test_external_or(sextractorxx, datafiles):
     assert source['isophotal_image_flags_test'] == 4 | 2 | 1  # 7
 
 
-def test_external_and(sextractorxx, datafiles):
+def test_external_and(sourcextractor, datafiles):
     """
     Test AND
     """
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=datafiles / 'simple' / 'saturated.fits',
         output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
@@ -92,7 +92,7 @@ def test_external_and(sextractorxx, datafiles):
     )
     assert run.exit_code == 0
 
-    catalog = Table.read(sextractorxx.get_output_catalog())
+    catalog = Table.read(sourcextractor.get_output_catalog())
     assert len(catalog) == 1
 
     source = catalog[0]
@@ -103,11 +103,11 @@ def test_external_and(sextractorxx, datafiles):
     assert source['isophotal_image_flags_test'] == 4 & 2 & 1  # 0
 
 
-def test_external_min(sextractorxx, datafiles):
+def test_external_min(sourcextractor, datafiles):
     """
     Test MIN
     """
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=datafiles / 'simple' / 'saturated.fits',
         output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
@@ -115,7 +115,7 @@ def test_external_min(sextractorxx, datafiles):
     )
     assert run.exit_code == 0
 
-    catalog = Table.read(sextractorxx.get_output_catalog())
+    catalog = Table.read(sourcextractor.get_output_catalog())
     assert len(catalog) == 1
 
     source = catalog[0]
@@ -125,11 +125,11 @@ def test_external_min(sextractorxx, datafiles):
     assert source['isophotal_image_flags_test'] == 1
 
 
-def test_external_max(sextractorxx, datafiles):
+def test_external_max(sourcextractor, datafiles):
     """
     Test MAX
     """
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=datafiles / 'simple' / 'saturated.fits',
         output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
@@ -137,7 +137,7 @@ def test_external_max(sextractorxx, datafiles):
     )
     assert run.exit_code == 0
 
-    catalog = Table.read(sextractorxx.get_output_catalog())
+    catalog = Table.read(sourcextractor.get_output_catalog())
     assert len(catalog) == 1
 
     source = catalog[0]
@@ -147,11 +147,11 @@ def test_external_max(sextractorxx, datafiles):
     assert source['isophotal_image_flags_test'] == 4
 
 
-def test_external_most(sextractorxx, datafiles):
+def test_external_most(sourcextractor, datafiles):
     """
     Test MOST
     """
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=datafiles / 'simple' / 'saturated.fits',
         output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
@@ -159,7 +159,7 @@ def test_external_most(sextractorxx, datafiles):
     )
     assert run.exit_code == 0
 
-    catalog = Table.read(sextractorxx.get_output_catalog())
+    catalog = Table.read(sourcextractor.get_output_catalog())
     assert len(catalog) == 1
 
     source = catalog[0]
@@ -169,11 +169,11 @@ def test_external_most(sextractorxx, datafiles):
     assert source['isophotal_image_flags_test'] == 2
 
 
-def test_external_pass_two(sextractorxx, datafiles):
+def test_external_pass_two(sourcextractor, datafiles):
     """
     Pass two set of flag files
     """
-    run = sextractorxx(
+    run = sourcextractor(
         detection_image=datafiles / 'simple' / 'saturated.fits',
         output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
         flag_image_test=datafiles / 'simple' / 'saturated_flags.fits',
@@ -183,7 +183,7 @@ def test_external_pass_two(sextractorxx, datafiles):
     )
     assert run.exit_code == 0
 
-    catalog = Table.read(sextractorxx.get_output_catalog())
+    catalog = Table.read(sourcextractor.get_output_catalog())
     assert len(catalog) == 1
 
     source = catalog[0]

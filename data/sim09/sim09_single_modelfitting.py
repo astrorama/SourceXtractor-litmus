@@ -1,4 +1,4 @@
-from sextractorxx.config import *
+from sourcextractor.config import *
 import os
 import numpy as np
 

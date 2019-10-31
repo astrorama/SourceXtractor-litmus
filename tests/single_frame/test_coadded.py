@@ -11,20 +11,20 @@ from util.validation import CrossValidation, intersect
 
 
 @pytest.fixture
-def coadded_catalog(sextractorxx, datafiles, module_output_area, tolerances):
+def coadded_catalog(sourcextractor, datafiles, module_output_area, tolerances):
     """
-    Run sextractorxx on a coadded single frame. Overrides the output area per test so
+    Run sourcextractor on a coadded single frame. Overrides the output area per test so
     SExtractor is only run once for this setup.
     The output is filtered by signal/noise.
     Note that we pass whe weight also here, as it is used by the isophotal plugin.
     For the others (auto, aperture), it is used the weight configured on the measurement frame
     (so, in the Python config file).
     """
-    sextractorxx.set_output_directory(module_output_area)
+    sourcextractor.set_output_directory(module_output_area)
 
     output_catalog = module_output_area / 'output.fits'
     if not os.path.exists(output_catalog):
-        run = sextractorxx(
+        run = sourcextractor(
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
             detection_image=datafiles / 'sim09' / 'img' / 'sim09_r.fits',
             weight_image=datafiles / 'sim09' / 'img' / 'sim09_r.weight.fits',

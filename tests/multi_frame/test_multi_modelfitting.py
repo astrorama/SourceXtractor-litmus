@@ -11,17 +11,17 @@ from util.validation import CrossValidation
 
 
 @pytest.fixture
-def modelfitting_catalog(sextractorxx, datafiles, module_output_area, tolerances):
+def modelfitting_catalog(sourcextractor, datafiles, module_output_area, tolerances):
     """
-    Run sextractorxx on multiple frames. Overrides the output area per test so
+    Run sourcextractor on multiple frames. Overrides the output area per test so
     SExtractor is only run once for this setup.
     The output is filtered by signal/noise, and sorted by location, so cross-matching is easier
     """
-    sextractorxx.set_output_directory(module_output_area)
+    sourcextractor.set_output_directory(module_output_area)
 
     output_catalog = module_output_area / 'output.fits'
     if not os.path.exists(output_catalog):
-        run = sextractorxx(
+        run = sourcextractor(
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting,SourceFlags',
             detection_image=datafiles / 'sim09' / 'img' / 'sim09.fits',
             weight_image=datafiles / 'sim09' / 'img' / 'sim09.weight.fits',

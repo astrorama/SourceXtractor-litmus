@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 from glob import glob
-from sextractorxx.config import *
+from sourcextractor.config import *
 
 # To match simulation (26 mag zeropoint, 300 exposure)
 MAG_ZEROPOINT = 32.19
