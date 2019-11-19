@@ -166,7 +166,7 @@ def test_generate_report(multi_frame_catalog, sim09_r_reference, sim09_r_simulat
                 'SExtractor2', sim09_r_reference,
                 'X_IMAGE', 'Y_IMAGE', 'FLAGS'
             )
-            flag_r.set_sextractorpp(
+            flag_r.set_sourcextractor(
                 f'SExtractor++ auto_flags:{i}', multi_frame_catalog,
                 'pixel_centroid_x', 'pixel_centroid_y', f'auto_flags:{i}'
             )

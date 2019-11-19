@@ -169,7 +169,7 @@ def test_generate_report(mef_catalog, sim09_r_reference, sim09_r_simulation, dat
                 'SExtractor2', sim09_r_reference,
                 'X_IMAGE', 'Y_IMAGE', 'FLAGS'
             )
-            flag_r.set_sextractorpp(
+            flag_r.set_sourcextractor(
                 f'SourceXtractor++ auto_flags:{i}', mef_catalog,
                 'pixel_centroid_x', 'pixel_centroid_y', f'auto_flags:{i}'
             )

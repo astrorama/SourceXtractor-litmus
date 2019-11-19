@@ -491,7 +491,7 @@ class Flags(Plot):
         kwargs['is_sex2'] = True
         self.__set(self.__ax1, *args, **kwargs)
 
-    def set_sextractorpp(self, *args, **kwargs):
+    def set_sourcextractor(self, *args, **kwargs):
         """
         Set the flags from the SExtractor++ run.
         Forward the parameters to __set
@@ -912,7 +912,7 @@ def generate_report(output, simulation, image_path, target, reference, weight_im
             'SExtractor2', reference,
             'X_IMAGE', 'Y_IMAGE', 'FLAGS'
         )
-        src_flags.set_sextractorpp(
+        src_flags.set_sourcextractor(
             'SExtractor++ source_flags', target,
             'pixel_centroid_x', 'pixel_centroid_y', 'source_flags'
         )
@@ -923,7 +923,7 @@ def generate_report(output, simulation, image_path, target, reference, weight_im
             'SExtractor2', reference,
             'X_IMAGE', 'Y_IMAGE', 'FLAGS'
         )
-        auto_flags.set_sextractorpp(
+        auto_flags.set_sourcextractor(
             'SExtractor++ auto_flags', target,
             'pixel_centroid_x', 'pixel_centroid_y', 'auto_flags'
         )
