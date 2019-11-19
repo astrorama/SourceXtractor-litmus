@@ -9,9 +9,9 @@ base_dir = os.path.abspath(os.path.dirname(__file__))
 
 measurement_img = load_fits_image(
     os.path.join(base_dir, 'img', 'sim09_r_01.fits'),
-    psf_file=os.path.join(base_dir, 'psf', 'sim09_r_01.psf'),
+    psf=os.path.join(base_dir, 'psf', 'sim09_r_01.psf'),
 )
-measurement_group = MeasurementGroup(ImageGroup(images=[measurement_img]))
+measurement_group = MeasurementGroup(measurement_img)
 
 pixel_x, pixel_y = get_pos_parameters()
 total_flux = get_flux_parameter()
