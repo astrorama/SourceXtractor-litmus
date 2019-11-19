@@ -1,14 +1,14 @@
-# SExtractor++ test suite
+# SourceXtractor++ test suite
 
-* `tests` contains the tests for SExtractor. Just execute `pytest`
+* `tests` contains the tests for SourceXtractor. Just execute `pytest`
   (Python 3 version!) on the project root directory to run them.  
 * `bin` contains a set of utilities required to prepare the tests.
   For instance, to gather some statistics from a sextractor run that can
-  be used to verify that SExtractor++ is, at least, as good.
+  be used to verify that SourceXtractor++ is, at least, as good.
 
 ## Markers
 Tests are marked so different subsets can be executed separately.
-For instance, tests that take a long time to run SExtractor are
+For instance, tests that take a long time to run SourceXtractor are
 marked as `pytest.mark.slow`, so it would be a bad idea to run them on
 each commit, for instance. They can be filtered out like
 
@@ -48,6 +48,6 @@ than 16400, and another for `isophotal_flux`, where the error
 limit is 23000.
 
 ## Where do these acceptable errors come from, anyway?
-From equivalent runs from SExtractor 2. SExtractor++ should
+From equivalent runs from SExtractor 2. SourceXtractor++ should
 do *at least as good*, so these tests try to make sure
 not only that it runs, but that the emitted values are good enough. 
