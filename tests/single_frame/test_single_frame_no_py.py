@@ -87,6 +87,7 @@ def test_flux(single_frame_catalog, single_frame_cross, sim11_r_01_reference, si
     assert np.median(catalog_dist - ref_dist) <= 0.
 
 
+@pytest.mark.report
 def test_generate_report(single_frame_catalog, sim11_r_01_reference, sim11_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.

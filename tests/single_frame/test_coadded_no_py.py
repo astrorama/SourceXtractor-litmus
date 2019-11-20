@@ -69,6 +69,7 @@ def test_flux(coadded_catalog, sim11_r_reference, flux_column, reference_flux_co
     assert np.median(catalog_dist - ref_dist) <= 1e-6
 
 
+@pytest.mark.report
 def test_generate_report(coadded_catalog, sim11_r_reference, sim11_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.

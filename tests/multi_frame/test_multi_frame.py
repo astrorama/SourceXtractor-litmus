@@ -125,6 +125,7 @@ def test_aper_flux(frame, aper_idx, multi_frame_catalog, sim11_r_reference, mult
     assert np.median(catalog_dist - ref_dist) <= 1e-6
 
 
+@pytest.mark.report
 def test_generate_report(multi_frame_catalog, sim11_r_reference, sim11_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.

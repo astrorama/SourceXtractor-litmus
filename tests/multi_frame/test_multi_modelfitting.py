@@ -86,6 +86,7 @@ def test_magnitude(modelfitting_catalog, r_cross, g_cross):
     assert np.mean(g_diff) <= 0.11
 
 
+@pytest.mark.report
 @pytest.mark.slow
 def test_generate_report(modelfitting_catalog, sim11_r_simulation, sim11_g_simulation,
                          sim11_r_reference, sim11_g_reference,

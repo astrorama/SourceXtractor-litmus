@@ -20,6 +20,7 @@ Markers used in the test suite:
 
 * `pytest.mark.slow`
 * `pytest.mark.regression`
+* `pytest.mark.report`
 
 ## Parametrized tests
 Some tests are parametrized based on a column, error, etc.

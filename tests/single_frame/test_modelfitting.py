@@ -65,6 +65,7 @@ def test_magnitude(modelfitting_catalog, modelfitting_cross, sim11_r_01_referenc
     assert np.median(catalog_mag_diff) <= np.median(ref_mag_diff) * (1 + tolerances['magnitude'])
 
 
+@pytest.mark.report
 def test_generate_report(modelfitting_catalog, sim11_r_01_reference, sim11_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
