@@ -19,7 +19,7 @@ def test_malformed_weight_image(sourcextractor, datafiles):
     """
     run = sourcextractor(
         detection_image=datafiles / 'simple' / 'boundary.fits',
-        weight_image=datafiles / 'sim09' / 'sim09_r.list',
+        weight_image=datafiles / 'sim11' / 'sim11_r.list',
         weight_type='weight'
     )
     assert run.exit_code > 0

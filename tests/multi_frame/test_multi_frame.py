@@ -23,11 +23,11 @@ def multi_frame_catalog(sourcextractor, datafiles, module_output_area, tolerance
     if not os.path.exists(output_catalog):
         run = sourcextractor(
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
-            detection_image=datafiles / 'sim09' / 'img' / 'sim09_r.fits',
-            weight_image=datafiles / 'sim09' / 'img' / 'sim09_r.weight.fits',
+            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.fits',
+            weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits',
             weight_type='weight',
             weight_absolute=True,
-            python_config_file=datafiles / 'sim09' / 'sim09_multiframe.py'
+            python_config_file=datafiles / 'sim11' / 'sim11_multiframe.py'
         )
         assert run.exit_code == 0
 
@@ -39,24 +39,24 @@ def multi_frame_catalog(sourcextractor, datafiles, module_output_area, tolerance
 
 
 @pytest.fixture
-def multi_frame_cross(multi_frame_catalog, sim09_r_simulation, datafiles, tolerances):
+def multi_frame_cross(multi_frame_catalog, sim11_r_simulation, datafiles, tolerances):
     image = Image(
-        datafiles / 'sim09' / 'img' / 'sim09_r.fits',
-        weight_image=datafiles / 'sim09' / 'img' / 'sim09_r.weight.fits'
+        datafiles / 'sim11' / 'img' / 'sim11_r.fits',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits'
     )
-    cross = CrossValidation(image, sim09_r_simulation, max_dist=tolerances['distance'])
+    cross = CrossValidation(image, sim11_r_simulation, max_dist=tolerances['distance'])
     return cross(multi_frame_catalog['pixel_centroid_x'], multi_frame_catalog['pixel_centroid_y'])
 
 
-def test_iso_flux(multi_frame_catalog, sim09_r_reference, multi_frame_cross, sim09_r_cross):
+def test_iso_flux(multi_frame_catalog, sim11_r_reference, multi_frame_cross, sim11_r_cross):
     """
     Cross-validate the magnitude columns. The measured magnitudes should be at least as close
     to the truth as the ref catalog (within a tolerance).
     ISO is measured on the detection frame
     """
-    catalog_intersect, ref_intersect = intersect(multi_frame_cross, sim09_r_cross)
+    catalog_intersect, ref_intersect = intersect(multi_frame_cross, sim11_r_cross)
     catalog_hits = multi_frame_catalog[multi_frame_cross.all_catalog[catalog_intersect]]
-    ref_hits = sim09_r_reference[sim09_r_cross.all_catalog[ref_intersect]]
+    ref_hits = sim11_r_reference[sim11_r_cross.all_catalog[ref_intersect]]
 
     assert len(catalog_hits) == len(ref_hits)
 
@@ -64,7 +64,7 @@ def test_iso_flux(multi_frame_catalog, sim09_r_reference, multi_frame_cross, sim
     catalog_flux_err = catalog_hits['isophotal_flux_err']
     ref_flux = ref_hits['FLUX_ISO']
     ref_flux_err = ref_hits['FLUXERR_ISO']
-    real_flux = sim09_r_cross.all_fluxes[ref_intersect]
+    real_flux = sim11_r_cross.all_fluxes[ref_intersect]
 
     catalog_dist = np.sqrt((catalog_flux - real_flux) ** 2 / catalog_flux_err ** 2)
     ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
@@ -73,16 +73,16 @@ def test_iso_flux(multi_frame_catalog, sim09_r_reference, multi_frame_cross, sim
 
 
 @pytest.mark.parametrize(
-    'frame', range(10)
+    'frame', range(3)
 )
-def test_auto_flux(frame, multi_frame_catalog, sim09_r_reference, multi_frame_cross, sim09_r_cross):
+def test_auto_flux(frame, multi_frame_catalog, sim11_r_reference, multi_frame_cross, sim11_r_cross):
     """
     AUTO is measured on the measurement frames, so it is trickier. Need to run the test for each
     frame, and filter out sources that are on the boundary or outside.
     """
-    catalog_intersect, ref_intersect = intersect(multi_frame_cross, sim09_r_cross)
+    catalog_intersect, ref_intersect = intersect(multi_frame_cross, sim11_r_cross)
     catalog_hits = multi_frame_catalog[multi_frame_cross.all_catalog[catalog_intersect]]
-    ref_hits = sim09_r_reference[sim09_r_cross.all_catalog[ref_intersect]]
+    ref_hits = sim11_r_reference[sim11_r_cross.all_catalog[ref_intersect]]
 
     inframe_filter = (catalog_hits['auto_flags'][:, frame] == 0)
 
@@ -90,7 +90,7 @@ def test_auto_flux(frame, multi_frame_catalog, sim09_r_reference, multi_frame_cr
     catalog_flux_err = catalog_hits['auto_flux_err'][:, frame][inframe_filter]
     ref_flux = ref_hits['FLUX_AUTO'][inframe_filter]
     ref_flux_err = ref_hits['FLUXERR_AUTO'][inframe_filter]
-    real_flux = sim09_r_cross.all_fluxes[ref_intersect[inframe_filter]]
+    real_flux = sim11_r_cross.all_fluxes[ref_intersect[inframe_filter]]
 
     catalog_dist = np.sqrt((catalog_flux - real_flux) ** 2 / catalog_flux_err ** 2)
     ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
@@ -99,16 +99,16 @@ def test_auto_flux(frame, multi_frame_catalog, sim09_r_reference, multi_frame_cr
 
 
 @pytest.mark.parametrize(
-    ['frame', 'aper_idx'], itertools.product(range(10), [0, 1, 2])
+    ['frame', 'aper_idx'], itertools.product(range(3), [0, 1, 2])
 )
-def test_aper_flux(frame, aper_idx, multi_frame_catalog, sim09_r_reference, multi_frame_cross, sim09_r_cross):
+def test_aper_flux(frame, aper_idx, multi_frame_catalog, sim11_r_reference, multi_frame_cross, sim11_r_cross):
     """
     APERTURE is measured on the measurement frames, so it is trickier. Need to run the test for each
     frame, and filter out sources that are on the boundary or outside.
     """
-    catalog_intersect, ref_intersect = intersect(multi_frame_cross, sim09_r_cross)
+    catalog_intersect, ref_intersect = intersect(multi_frame_cross, sim11_r_cross)
     catalog_hits = multi_frame_catalog[multi_frame_cross.all_catalog[catalog_intersect]]
-    ref_hits = sim09_r_reference[sim09_r_cross.all_catalog[ref_intersect]]
+    ref_hits = sim11_r_reference[sim11_r_cross.all_catalog[ref_intersect]]
 
     inframe_filter = (catalog_hits['aperture_flags'][:, frame, aper_idx] == 0)
 
@@ -116,7 +116,7 @@ def test_aper_flux(frame, aper_idx, multi_frame_catalog, sim09_r_reference, mult
     catalog_flux_err = catalog_hits['aperture_flux_err'][:, frame, aper_idx][inframe_filter]
     ref_flux = ref_hits['FLUX_APER'][inframe_filter][:, aper_idx]
     ref_flux_err = ref_hits['FLUXERR_APER'][inframe_filter][:, aper_idx]
-    real_flux = sim09_r_cross.all_fluxes[ref_intersect[inframe_filter]]
+    real_flux = sim11_r_cross.all_fluxes[ref_intersect[inframe_filter]]
 
     catalog_dist = np.sqrt((catalog_flux - real_flux) ** 2 / catalog_flux_err ** 2)
     ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
@@ -125,49 +125,49 @@ def test_aper_flux(frame, aper_idx, multi_frame_catalog, sim09_r_reference, mult
     assert np.median(catalog_dist - ref_dist) <= 1e-6
 
 
-def test_generate_report(multi_frame_catalog, sim09_r_reference, sim09_r_simulation, datafiles, module_output_area):
+def test_generate_report(multi_frame_catalog, sim11_r_reference, sim11_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     image = plot.Image(
-        datafiles / 'sim09' / 'img' / 'sim09_r.fits',
-        weight_image=datafiles / 'sim09' / 'img' / 'sim09_r.weight.fits'
+        datafiles / 'sim11' / 'img' / 'sim11_r.fits',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits'
     )
     with plot.Report(module_output_area / 'report.pdf') as report:
-        loc_map = plot.Location(image, sim09_r_simulation)
-        loc_map.add('SExtractor2 (R)', sim09_r_reference, 'X_IMAGE', 'Y_IMAGE', 'ISOAREA_IMAGE', marker='1')
-        loc_map.add('SExtractor++', multi_frame_catalog, 'pixel_centroid_x', 'pixel_centroid_y', 'area', marker='2')
+        loc_map = plot.Location(image, sim11_r_simulation)
+        loc_map.add('SExtractor2 (R)', sim11_r_reference, 'X_IMAGE', 'Y_IMAGE', 'ISOAREA_IMAGE', marker='1')
+        loc_map.add('SourceXtractor++', multi_frame_catalog, 'pixel_centroid_x', 'pixel_centroid_y', 'area', marker='2')
         report.add(loc_map)
 
-        dist = plot.Distances(image, sim09_r_simulation)
-        dist.add('SExtractor2 (R)', sim09_r_reference, 'X_IMAGE', 'Y_IMAGE', marker='o')
-        dist.add('SExtractor++', multi_frame_catalog, 'pixel_centroid_x', 'pixel_centroid_y', marker='.')
+        dist = plot.Distances(image, sim11_r_simulation)
+        dist.add('SExtractor2 (R)', sim11_r_reference, 'X_IMAGE', 'Y_IMAGE', marker='o')
+        dist.add('SourceXtractor++', multi_frame_catalog, 'pixel_centroid_x', 'pixel_centroid_y', marker='.')
         report.add(dist)
 
-        for i in range(10):
-            mag_r = plot.Magnitude(f'auto_mag:{i}', sim09_r_simulation)
+        for i in range(3):
+            mag_r = plot.Magnitude(f'auto_mag:{i}', sim11_r_simulation)
             mag_r.add(
-                'SExtractor2', sim09_r_reference,
+                'SExtractor2', sim11_r_reference,
                 'ALPHA_SKY', 'DELTA_SKY',
                 'MAG_AUTO', 'MAGERR_AUTO',
                 marker='o'
             )
             mag_r.add(
-                'SExtractor++', multi_frame_catalog,
+                'SourceXtractor++', multi_frame_catalog,
                 'world_centroid_alpha', 'world_centroid_delta',
                 f'auto_mag:{i}', f'auto_mag_err:{i}',
                 marker='.'
             )
             report.add(mag_r)
 
-        for i in range(10):
+        for i in range(3):
             flag_r = plot.Flags(image)
             flag_r.set_sextractor2(
-                'SExtractor2', sim09_r_reference,
+                'SExtractor2', sim11_r_reference,
                 'X_IMAGE', 'Y_IMAGE', 'FLAGS'
             )
             flag_r.set_sourcextractor(
-                f'SExtractor++ auto_flags:{i}', multi_frame_catalog,
+                f'SourceXtractor++ auto_flags:{i}', multi_frame_catalog,
                 'pixel_centroid_x', 'pixel_centroid_y', f'auto_flags:{i}'
             )
             report.add(flag_r)

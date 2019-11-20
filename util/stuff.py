@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class SourceFlags(IntFlag):
     """
-    SExtractor++ flags
+    SourceXtractor++ flags
     """
     NONE = 0  # No flag is set
     BIASED = 1 << 0  # The object has bad pixels

@@ -37,7 +37,7 @@ def test_external_bad_file(sourcextractor, datafiles):
     run = sourcextractor(
         detection_image=datafiles / 'simple' / 'saturated.fits',
         output_properties='SourceIDs,PixelCentroid,SourceFlags,ExternalFlags',
-        flag_image_test=datafiles / 'sim09' / 'default.param',
+        flag_image_test=datafiles / 'sim11' / 'default.param',
         flag_type_test='OR'
     )
     assert run.exit_code > 0
