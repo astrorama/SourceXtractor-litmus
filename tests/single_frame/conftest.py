@@ -27,7 +27,7 @@ def sim11_r_01_reference(datafiles, tolerances):
 @pytest.fixture(scope='session')
 def sim11_r_01_cross(sim11_r_01_reference, sim11_r_simulation, datafiles, tolerances):
     cross = CrossValidation(
-        datafiles / 'sim11' / 'img' / 'sim11_r_01.fits', sim11_r_simulation,
+        datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz', sim11_r_simulation,
         max_dist=tolerances['distance']
     )
     return cross(sim11_r_01_reference['X_IMAGE'], sim11_r_01_reference['Y_IMAGE'])
@@ -46,7 +46,7 @@ def sim11_r_reference(datafiles, tolerances):
 @pytest.fixture(scope='session')
 def sim11_r_cross(sim11_r_reference, sim11_r_simulation, datafiles, tolerances):
     cross = CrossValidation(
-        datafiles / 'sim11' / 'img' / 'sim11_r.fits', sim11_r_simulation,
+        datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz', sim11_r_simulation,
         max_dist=tolerances['distance']
     )
     return cross(sim11_r_reference['X_IMAGE'], sim11_r_reference['Y_IMAGE'])
@@ -55,8 +55,8 @@ def sim11_r_cross(sim11_r_reference, sim11_r_simulation, datafiles, tolerances):
 @pytest.fixture
 def coadded_frame_cross(coadded_catalog, sim11_r_simulation, datafiles, tolerances):
     image = Image(
-        datafiles / 'sim11' / 'img' / 'sim11_r.fits',
-        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits'
+        datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz'
     )
     cross = CrossValidation(image, sim11_r_simulation, max_dist=tolerances['distance'])
     return cross(coadded_catalog['pixel_centroid_x'], coadded_catalog['pixel_centroid_y'])

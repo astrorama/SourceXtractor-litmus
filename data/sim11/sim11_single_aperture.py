@@ -4,7 +4,7 @@ import os
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
 measurement_img = load_fits_image(
-    os.path.join(base_dir, 'img', 'sim11_r_01.fits'),
+    os.path.join(base_dir, 'img', 'sim11_r_01.fits.gz'),
 )
 
 measurement_group = MeasurementGroup(measurement_img)

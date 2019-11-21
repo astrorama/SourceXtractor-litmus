@@ -23,8 +23,8 @@ def coadded_catalog(sourcextractor, datafiles, module_output_area, tolerances):
     if not os.path.exists(output_catalog):
         run = sourcextractor(
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels',
-            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.fits',
-            weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits',
+            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
+            weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz',
             weight_type='weight',
             weight_absolute=True,
             psf_filename=datafiles / 'sim11' / 'psf' / 'sim11_r.psf'
@@ -76,7 +76,7 @@ def test_generate_report(coadded_catalog, sim11_r_reference, sim11_r_simulation,
     """
     plot.generate_report(
         module_output_area / 'report.pdf', sim11_r_simulation,
-        datafiles / 'sim11' / 'img' / 'sim11_r.fits',
+        datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
         coadded_catalog, sim11_r_reference,
-        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz',
     )

@@ -4,8 +4,8 @@ import os
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
-frames = glob(os.path.join(base_dir, 'img', 'sim11_r_*.fits'))
-psfs = glob(os.path.join(base_dir, 'psf', 'sim11_r_*.psf'))
+frames = sorted(glob(os.path.join(base_dir, 'img', 'sim11_r_*.fits.gz')))
+psfs = sorted(glob(os.path.join(base_dir, 'psf', 'sim11_r_*.psf')))
 
 measurement_group = MeasurementGroup(load_fits_images(frames, psfs))
 

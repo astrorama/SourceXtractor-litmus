@@ -10,7 +10,7 @@ MAG_ZEROPOINT = 32.19
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
 top = load_fits_images(
-    sorted(glob(os.path.join(base_dir, 'img', 'sim11_[r|g]_*.fits'))),
+    sorted(glob(os.path.join(base_dir, 'img', 'sim11_[r|g]_*.fits.gz'))),
     sorted(glob(os.path.join(base_dir, 'psf', 'sim11_[r|g]_*.psf'))),
 )
 top.split(ByKeyword('FILTER'))

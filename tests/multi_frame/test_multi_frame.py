@@ -23,8 +23,8 @@ def multi_frame_catalog(sourcextractor, datafiles, module_output_area, tolerance
     if not os.path.exists(output_catalog):
         run = sourcextractor(
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
-            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.fits',
-            weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits',
+            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
+            weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz',
             weight_type='weight',
             weight_absolute=True,
             python_config_file=datafiles / 'sim11' / 'sim11_multiframe.py'
@@ -41,8 +41,8 @@ def multi_frame_catalog(sourcextractor, datafiles, module_output_area, tolerance
 @pytest.fixture
 def multi_frame_cross(multi_frame_catalog, sim11_r_simulation, datafiles, tolerances):
     image = Image(
-        datafiles / 'sim11' / 'img' / 'sim11_r.fits',
-        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits'
+        datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz'
     )
     cross = CrossValidation(image, sim11_r_simulation, max_dist=tolerances['distance'])
     return cross(multi_frame_catalog['pixel_centroid_x'], multi_frame_catalog['pixel_centroid_y'])
@@ -131,8 +131,8 @@ def test_generate_report(multi_frame_catalog, sim11_r_reference, sim11_r_simulat
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     image = plot.Image(
-        datafiles / 'sim11' / 'img' / 'sim11_r.fits',
-        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits'
+        datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz'
     )
     with plot.Report(module_output_area / 'report.pdf') as report:
         loc_map = plot.Location(image, sim11_r_simulation)

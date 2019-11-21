@@ -31,7 +31,7 @@ def single_frame_catalog(sourcextractor, datafiles, module_output_area, toleranc
     if not os.path.exists(output_catalog):
         run = sourcextractor(
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels',
-            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits',
+            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
             psf_filename=datafiles / 'sim11' / 'psf' / 'sim11_r_01.psf',
             python_config_file=None
         )
@@ -44,7 +44,7 @@ def single_frame_catalog(sourcextractor, datafiles, module_output_area, toleranc
 
 @pytest.fixture
 def single_frame_cross(single_frame_catalog, sim11_r_simulation, datafiles, tolerances):
-    detection_image = datafiles / 'sim11' / 'img' / 'sim11_r_01.fits'
+    detection_image = datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz'
     cross = CrossValidation(detection_image, sim11_r_simulation, max_dist=tolerances['distance'])
     return cross(single_frame_catalog['pixel_centroid_x'], single_frame_catalog['pixel_centroid_y'])
 
@@ -93,6 +93,6 @@ def test_generate_report(single_frame_catalog, sim11_r_01_reference, sim11_r_sim
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     plot.generate_report(
-        module_output_area / 'report.pdf', sim11_r_simulation, datafiles / 'sim11' / 'img' / 'sim11_r_01.fits',
+        module_output_area / 'report.pdf', sim11_r_simulation, datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
         single_frame_catalog, sim11_r_01_reference
     )

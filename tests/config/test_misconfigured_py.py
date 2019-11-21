@@ -14,7 +14,7 @@ def test_add_model_measure_group(sourcextractor_py, datafiles):
     Must not be able to add a model on top of an ImageGroup.
     Only MeasureGroup must be accepted.
     """
-    top = sourcextractor_py.load_fits_images([datafiles / 'simple' / 'saturated.fits'])
+    top = sourcextractor_py.load_fits_images([datafiles / 'simple' / 'saturated.fits.gz'])
     assert isinstance(top, sourcextractor_py.ImageGroup)
 
     x, y = sourcextractor_py.get_pos_parameters()
@@ -29,10 +29,10 @@ def test_add_model_measure_group(sourcextractor_py, datafiles):
 
 def test_missing_file_in_python(sourcextractor_py, datafiles):
     with raises(Exception):
-        sourcextractor_py.load_fits_images([datafiles / 'ouch.fits'])
+        sourcextractor_py.load_fits_images([datafiles / 'ouch.fits.gz'])
 
     with raises(Exception):
         sourcextractor_py.load_fits_images(
-            [datafiles / 'sim11' / 'img' / 'sim11_r_01.fits'],
+            [datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz'],
             psf_filename=[datafiles / 'sim11' / 'psf' / 'ouch.psf'],
         )

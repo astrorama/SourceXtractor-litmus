@@ -7,7 +7,7 @@ def test_ascii_output_stdout(sourcextractor, datafiles):
     """
     Run SExtractor asking for ASCII output on the standard output
     """
-    single_source_fits = datafiles / 'simple' / 'saturated.fits'
+    single_source_fits = datafiles / 'simple' / 'saturated.fits.gz'
     assert os.path.exists(single_source_fits)
 
     run = sourcextractor(
@@ -31,7 +31,7 @@ def test_ascii_output_catalog_filename(sourcextractor, datafiles):
     """
     Run SExtractor asking for ASCII output on a file
     """
-    single_source_fits = datafiles / 'simple' / 'saturated.fits'
+    single_source_fits = datafiles / 'simple' / 'saturated.fits.gz'
     assert os.path.exists(single_source_fits)
 
     output_catalog = sourcextractor.get_output_directory() / 'output.txt'
@@ -58,7 +58,7 @@ def test_output_exists(sourcextractor, datafiles):
     """
     The output file already exists
     """
-    single_source_fits = datafiles / 'simple' / 'saturated.fits'
+    single_source_fits = datafiles / 'simple' / 'saturated.fits.gz'
     output_catalog = sourcextractor.get_output_directory() / 'output.txt'
 
     os.makedirs(sourcextractor.get_output_directory(), exist_ok=True)

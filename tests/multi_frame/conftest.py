@@ -44,7 +44,7 @@ def sim11_g_reference(datafiles, tolerances):
 @pytest.fixture(scope='session')
 def sim11_r_cross(sim11_r_reference, sim11_r_simulation, datafiles, tolerances):
     cross = CrossValidation(
-        datafiles / 'sim11' / 'img' / 'sim11_r.fits', sim11_r_simulation,
+        datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz', sim11_r_simulation,
         max_dist=tolerances['distance']
     )
     return cross(sim11_r_reference['X_IMAGE'], sim11_r_reference['Y_IMAGE'])

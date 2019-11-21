@@ -4,9 +4,9 @@ import os
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
 measurement_img = load_fits_image(
-    os.path.join(base_dir, 'img', 'sim11_r.fits'),
+    os.path.join(base_dir, 'img', 'sim11_r.fits.gz'),
     psf=os.path.join(base_dir, 'psf', 'sim11_r.psf'),
-    weight=os.path.join(base_dir, 'img', 'sim11_r.weight.fits'),
+    weight=os.path.join(base_dir, 'img', 'sim11_r.weight.fits.gz'),
     weight_type='weight',
     weight_absolute=True
 )

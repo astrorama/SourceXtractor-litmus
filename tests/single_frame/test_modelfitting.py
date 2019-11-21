@@ -21,7 +21,7 @@ def modelfitting_catalog(sourcextractor, datafiles, module_output_area, toleranc
     if not os.path.exists(output_catalog):
         run = sourcextractor(
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting',
-            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits',
+            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
             python_config_file=datafiles / 'sim11' / 'sim11_single_modelfitting.py'
         )
         assert run.exit_code == 0
@@ -35,7 +35,7 @@ def modelfitting_catalog(sourcextractor, datafiles, module_output_area, toleranc
 
 @pytest.fixture
 def modelfitting_cross(modelfitting_catalog, sim11_r_simulation, datafiles, tolerances):
-    detection_image = datafiles / 'sim11' / 'img' / 'sim11_r_01.fits'
+    detection_image = datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz'
     cross = CrossValidation(detection_image, sim11_r_simulation, max_dist=tolerances['distance'])
     return cross(modelfitting_catalog['pixel_centroid_x'], modelfitting_catalog['pixel_centroid_y'])
 
@@ -70,7 +70,7 @@ def test_generate_report(modelfitting_catalog, sim11_r_01_reference, sim11_r_sim
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
-    image = plot.Image(datafiles / 'sim11' / 'img' / 'sim11_r_01.fits')
+    image = plot.Image(datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz')
     with plot.Report(module_output_area / 'report.pdf') as report:
         loc_map = plot.Location(image, sim11_r_simulation)
         loc_map.add('SExtractor2', sim11_r_01_reference, 'XMODEL_IMAGE', 'YMODEL_IMAGE', marker='1')

@@ -4,7 +4,7 @@ import os
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
 
-frames = [os.path.join(base_dir, 'mef_r.fits')]
+frames = [os.path.join(base_dir, 'mef_r.fits.gz')]
 psfs = [os.path.join(base_dir, 'mef_r.psf')]
 
 measurement_group = MeasurementGroup(load_fits_images(frames, psfs))
