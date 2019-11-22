@@ -18,10 +18,16 @@ class Image(object):
         :param weight_image:
             Path to the FITS weight image. It can be None.
         :param hdu_index:
-            Index of the HDU that contains the image data. Defaults to 0 (the primary one).
+            Index of the HDU that contains the image data. Defaults to 0 (the first image).
         """
-        self.__image = fits.open(image)[hdu_index]
-        self.__weight = fits.open(weight_image)[hdu_index] if weight_image else None
+        hdu_list = [hdu for hdu in fits.open(image) if hdu.is_image and hdu.header['NAXIS'] == 2]
+
+        self.__image = hdu_list[hdu_index]
+        if weight_image:
+            weight_hdu_list = [hdu for hdu in fits.open(weight_image) if hdu.is_image and hdu.header['NAXIS'] == 2]
+            self.__weight = weight_hdu_list[hdu_index] if weight_image else None
+        else:
+            self.__weight = None
         self.__wcs = WCS(self.__image.header)
 
     @property
