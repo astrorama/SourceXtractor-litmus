@@ -145,6 +145,21 @@ def test_generate_report(multi_frame_catalog, sim11_r_reference, sim11_r_simulat
         dist.add('SourceXtractor++', multi_frame_catalog, 'pixel_centroid_x', 'pixel_centroid_y', marker='.')
         report.add(dist)
 
+        mag_r = plot.Magnitude(f'iso_mag', sim11_r_simulation)
+        mag_r.add(
+            'SExtractor2', sim11_r_reference,
+            'ALPHA_SKY', 'DELTA_SKY',
+            'MAG_ISO', 'MAGERR_ISO',
+            marker='o'
+        )
+        mag_r.add(
+            'SourceXtractor++', multi_frame_catalog,
+            'world_centroid_alpha', 'world_centroid_delta',
+            'isophotal_mag', 'isophotal_mag_err',
+            marker='.'
+        )
+        report.add(mag_r)
+
         for i in range(3):
             mag_r = plot.Magnitude(f'auto_mag:{i}', sim11_r_simulation)
             mag_r.add(
