@@ -306,7 +306,7 @@ class Magnitude(Plot):
         self.__ax_delta = self.__figure.add_subplot(gridspec.new_subplotspec((2, 0), 1), sharex=self.__ax_mag)
         self.__ax_delta.set_facecolor('whitesmoke')
         self.__ax_delta.spines['top'].set_visible(False)
-        self.__ax_delta.set_ylabel('$\Delta$')
+        self.__ax_delta.set_ylabel('$\\Delta$')
         self.__ax_delta.axhline(0, color='gray')
         self.__ax_delta.grid(True, linestyle=':')
         self.__ax_delta.set_ylim(-1.1, 1.1)
