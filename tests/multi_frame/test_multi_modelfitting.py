@@ -82,8 +82,8 @@ def test_magnitude(modelfitting_catalog, r_cross, g_cross):
     r_diff = r_mag[r_not_flagged] - r_cross.all_magnitudes[r_not_flagged]
     g_diff = g_mag[g_not_flagged] - g_cross.all_magnitudes[g_not_flagged]
 
-    assert np.mean(r_diff) <= 0.11
-    assert np.mean(g_diff) <= 0.11
+    assert np.mean(r_diff) <= 0.14
+    assert np.mean(g_diff) <= 0.14
 
 
 @pytest.mark.report
