@@ -1,27 +1,29 @@
-import logging
 import os
 
 import numpy as np
 import pytest
 from astropy.table import Table
 
-from util import stuff, plot
+from util import plot
 from util.image import Image
 from util.validation import CrossValidation
 
+engines = ['levmar', 'gsl']
 
-@pytest.fixture
-def modelfitting_catalog(sourcextractor, datafiles, module_output_area, tolerances):
+@pytest.fixture(params=engines)
+def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on multiple frames. Overrides the output area per test so
     SExtractor is only run once for this setup.
     The output is filtered by signal/noise, and sorted by location, so cross-matching is easier
     """
+    module_output_area = module_output_area / request.param
     sourcextractor.set_output_directory(module_output_area)
 
     output_catalog = module_output_area / 'output.fits'
     if not os.path.exists(output_catalog):
         run = sourcextractor(
+            'engine={}'.format(request.param),
             output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting,SourceFlags',
             detection_image=datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
             weight_image=datafiles / 'sim11' / 'img' / 'sim11.weight.fits.gz',
@@ -38,6 +40,7 @@ def modelfitting_catalog(sourcextractor, datafiles, module_output_area, toleranc
     catalog['model_mag_r_err'][catalog['model_mag_r_err'] >= 99.] = np.nan
     catalog['model_flux_g_err'][catalog['model_flux_g_err'] >= 99.] = np.nan
     catalog['model_mag_g_err'][catalog['model_mag_g_err'] >= 99.] = np.nan
+    catalog.meta['engine'] = request.param
     assert len(catalog)
     return catalog[bright_filter]
 
@@ -94,6 +97,7 @@ def test_generate_report(modelfitting_catalog, sim11_r_simulation, sim11_g_simul
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
+    module_output_area = module_output_area / modelfitting_catalog.meta['engine']
 
     # Filter not fitted sources
     not_flagged = modelfitting_catalog['fmf_flags'] == 0

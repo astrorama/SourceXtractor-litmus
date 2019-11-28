@@ -4,6 +4,9 @@ import numpy as np
 from glob import glob
 from sourcextractor.config import *
 
+args = Arguments(engine="levmar")
+set_engine(args.engine)
+
 # To match simulation (26 mag zeropoint, 300 exposure)
 MAG_ZEROPOINT = 32.19
 
