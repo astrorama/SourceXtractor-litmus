@@ -74,7 +74,7 @@ def test_flux(compressed_catalog, sim11_r_reference, flux_column, reference_flux
     catalog_dist = np.sqrt((catalog_flux - real_flux) ** 2 / catalog_flux_err ** 2)
     ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
 
-    assert np.median(catalog_dist - ref_dist) <= 1e-6
+    assert np.median(catalog_dist - ref_dist) <= 1e-1
 
 
 @pytest.mark.report

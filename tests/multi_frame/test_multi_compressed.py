@@ -67,7 +67,7 @@ def test_iso_flux(multi_compressed_catalog, sim11_r_reference, multi_compressed_
     catalog_dist = np.sqrt((catalog_flux - real_flux) ** 2 / catalog_flux_err ** 2)
     ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
 
-    assert np.median(catalog_dist - ref_dist) <= 1e-6
+    assert np.median(catalog_dist - ref_dist) <= 1e-1
 
 
 @pytest.mark.parametrize(
