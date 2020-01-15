@@ -1,13 +1,14 @@
+import logging
 import os
 import sys
+from configparser import ConfigParser
 from pathlib import Path
 
 import pytest
-from configparser import ConfigParser
 
-from util import stuff
 from util.bin import Executable
 
+logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope='session')
 def test_configuration(request):
@@ -106,6 +107,8 @@ class SExtractorxx(object):
             cmd_args.extend(['--config-file', cfg_file])
 
         self.__output_catalog = cfg_args.get('output_catalog_filename', None)
+        if self.__output_catalog and os.path.exists(self.__output_catalog):
+            logger.warning(f'Overwriting {self.__output_catalog}')
         result = self.__exe.run(*cmd_args, cwd=self.__output_dir, env=self.__env)
 
         if result.exit_code != 0 and self.__output_catalog and os.path.exists(self.__output_catalog):
@@ -114,7 +117,7 @@ class SExtractorxx(object):
         return result
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def sourcextractor(request, test_configuration, sourcextractor_defaults, module_output_area):
     """
     Fixture for the SExtractor executable

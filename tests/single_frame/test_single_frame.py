@@ -17,7 +17,7 @@ from util.catalog import get_column
 from util.validation import CrossValidation, intersect
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def single_frame_catalog(sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on a single frame. Overrides the output area per test so
@@ -28,21 +28,19 @@ def single_frame_catalog(sourcextractor, datafiles, module_output_area, toleranc
 
     detection_image = datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz'
 
-    output_catalog = module_output_area / 'output.fits'
-    if not os.path.exists(output_catalog):
-        run = sourcextractor(
-            output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
-            detection_image=detection_image,
-            python_config_file=datafiles / 'sim11' / 'sim11_single.py'
-        )
-        assert run.exit_code == 0
+    run = sourcextractor(
+        output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
+        detection_image=detection_image,
+        python_config_file=datafiles / 'sim11' / 'sim11_single.py'
+    )
+    assert run.exit_code == 0
 
-    catalog = Table.read(output_catalog)
+    catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
     return catalog[bright_filter]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def single_frame_cross(single_frame_catalog, sim11_r_simulation, datafiles, tolerances):
     detection_image = datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz'
     cross = CrossValidation(detection_image, sim11_r_simulation, max_dist=tolerances['distance'])

@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pytest
 from astropy.table import Table
@@ -10,7 +8,7 @@ from util.validation import CrossValidation
 
 engines = ['levmar', 'gsl']
 
-@pytest.fixture(params=engines)
+@pytest.fixture(scope='module', params=engines)
 def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on multiple frames. Overrides the output area per test so
@@ -20,21 +18,19 @@ def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area,
     module_output_area = module_output_area / request.param
     sourcextractor.set_output_directory(module_output_area)
 
-    output_catalog = module_output_area / 'output.fits'
-    if not os.path.exists(output_catalog):
-        run = sourcextractor(
-            'engine={}'.format(request.param),
-            output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting,SourceFlags',
-            detection_image=datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
-            weight_image=datafiles / 'sim11' / 'img' / 'sim11.weight.fits.gz',
-            weight_type='weight',
-            weight_absolute=True,
-            python_config_file=datafiles / 'sim11' / 'sim11_multi_modelfitting.py',
-            thread_count=4
-        )
-        assert run.exit_code == 0
+    run = sourcextractor(
+        'engine={}'.format(request.param),
+        output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting,SourceFlags',
+        detection_image=datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11.weight.fits.gz',
+        weight_type='weight',
+        weight_absolute=True,
+        python_config_file=datafiles / 'sim11' / 'sim11_multi_modelfitting.py',
+        thread_count=4
+    )
+    assert run.exit_code == 0
 
-    catalog = Table.read(output_catalog)
+    catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
     catalog['model_flux_r_err'][catalog['model_flux_r_err'] >= 99.] = np.nan
     catalog['model_mag_r_err'][catalog['model_mag_r_err'] >= 99.] = np.nan
@@ -45,7 +41,7 @@ def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area,
     return catalog[bright_filter]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def r_cross(modelfitting_catalog, sim11_r_simulation, datafiles, tolerances):
     image = Image(
         datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
@@ -55,7 +51,7 @@ def r_cross(modelfitting_catalog, sim11_r_simulation, datafiles, tolerances):
     return cross(modelfitting_catalog['pixel_centroid_x'], modelfitting_catalog['pixel_centroid_y'])
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def g_cross(modelfitting_catalog, sim11_g_simulation, datafiles, tolerances):
     image = Image(
         datafiles / 'sim11' / 'img' / 'sim11.fits.gz',

@@ -1,6 +1,4 @@
 import itertools
-import os
-
 import numpy as np
 import pytest
 from astropy.table import Table
@@ -14,7 +12,7 @@ Note that these tests are identical to test_multi_frame.py
 The difference is that the data is read from MEF (Multi Extension FITS)
 """
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def mef_catalog(sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on multiple MEF files.
@@ -22,26 +20,24 @@ def mef_catalog(sourcextractor, datafiles, module_output_area, tolerances):
     """
     sourcextractor.set_output_directory(module_output_area)
 
-    output_catalog = module_output_area / 'output.fits'
-    if not os.path.exists(output_catalog):
-        run = sourcextractor(
-            output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
-            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
-            weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz',
-            weight_type='weight',
-            weight_absolute=True,
-            python_config_file=datafiles / 'mef' / 'sim11_mef.py'
-        )
-        assert run.exit_code == 0
+    run = sourcextractor(
+        output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
+        detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz',
+        weight_type='weight',
+        weight_absolute=True,
+        python_config_file=datafiles / 'mef' / 'sim11_mef.py'
+    )
+    assert run.exit_code == 0
 
-    catalog = Table.read(output_catalog)
+    catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
     catalog['auto_mag'][catalog['auto_mag'] >= 99.] = np.nan
     catalog['aperture_mag'][catalog['aperture_mag'] >= 99.] = np.nan
     return catalog[bright_filter]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def mef_frame_cross(mef_catalog, sim11_r_simulation, datafiles, tolerances):
     image = Image(
         datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',

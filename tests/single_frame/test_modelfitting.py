@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pytest
 from astropy.table import Table
@@ -9,7 +7,7 @@ from util.validation import CrossValidation
 
 engines = ['levmar', 'gsl']
 
-@pytest.fixture(params=engines)
+@pytest.fixture(scope='module', params=engines)
 def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on a single frame. Overrides the output area per test so
@@ -19,17 +17,15 @@ def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area,
     module_output_area = module_output_area / request.param
     sourcextractor.set_output_directory(module_output_area)
 
-    output_catalog = module_output_area / 'output.fits'
-    if not os.path.exists(output_catalog):
-        run = sourcextractor(
-            'engine={}'.format(request.param),
-            output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting',
-            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
-            python_config_file=datafiles / 'sim11' / 'sim11_single_modelfitting.py'
-        )
-        assert run.exit_code == 0
+    run = sourcextractor(
+        'engine={}'.format(request.param),
+        output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting',
+        detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
+        python_config_file=datafiles / 'sim11' / 'sim11_single_modelfitting.py'
+    )
+    assert run.exit_code == 0
 
-    catalog = Table.read(output_catalog)
+    catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
     catalog['model_flux_r_err'][catalog['model_flux_r_err'] >= 99.] = np.nan
     catalog['model_mag_r_err'][catalog['model_mag_r_err'] >= 99.] = np.nan
@@ -37,7 +33,7 @@ def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area,
     return catalog[bright_filter]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def modelfitting_cross(modelfitting_catalog, sim11_r_simulation, datafiles, tolerances):
     detection_image = datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz'
     cross = CrossValidation(detection_image, sim11_r_simulation, max_dist=tolerances['distance'])

@@ -1,16 +1,13 @@
-import os
-
 import numpy as np
 import pytest
 from astropy.table import Table
 
 from util import plot
 from util.catalog import get_column
-from util.image import Image
-from util.validation import CrossValidation, intersect
+from util.validation import intersect
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def coadded_catalog(sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on a coadded single frame. Overrides the output area per test so
@@ -22,19 +19,17 @@ def coadded_catalog(sourcextractor, datafiles, module_output_area, tolerances):
     """
     sourcextractor.set_output_directory(module_output_area)
 
-    output_catalog = module_output_area / 'output.fits'
-    if not os.path.exists(output_catalog):
-        run = sourcextractor(
-            output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
-            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
-            weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz',
-            python_config_file=datafiles / 'sim11' / 'sim11_single_weights.py',
-            weight_type='weight',
-            weight_absolute=True
-        )
-        assert run.exit_code == 0
+    run = sourcextractor(
+        output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
+        detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz',
+        python_config_file=datafiles / 'sim11' / 'sim11_single_weights.py',
+        weight_type='weight',
+        weight_absolute=True
+    )
+    assert run.exit_code == 0
 
-    catalog = Table.read(output_catalog)
+    catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
     for nan_col in ['isophotal_mag', 'auto_mag', 'isophotal_mag_err', 'auto_mag_err']:
         catalog[nan_col][catalog[nan_col] >= 99.] = np.nan
