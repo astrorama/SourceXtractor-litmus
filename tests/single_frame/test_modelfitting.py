@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 from astropy.table import Table
@@ -7,8 +9,9 @@ from util.validation import CrossValidation
 
 engines = ['levmar', 'gsl']
 
+
 @pytest.fixture(scope='module', params=engines)
-def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area, tolerances):
+def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on a single frame. Overrides the output area per test so
     SExtractor is only run once for this setup.
@@ -30,7 +33,12 @@ def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area,
     catalog['model_flux_r_err'][catalog['model_flux_r_err'] >= 99.] = np.nan
     catalog['model_mag_r_err'][catalog['model_mag_r_err'] >= 99.] = np.nan
     catalog.meta['engine'] = request.param
-    return catalog[bright_filter]
+    return SimpleNamespace(run=run, catalog=catalog[bright_filter])
+
+
+@pytest.fixture(scope='module')
+def modelfitting_catalog(modelfitting_run):
+    return modelfitting_run.catalog
 
 
 @pytest.fixture(scope='module')
@@ -66,10 +74,11 @@ def test_magnitude(modelfitting_catalog, modelfitting_cross, sim11_r_01_referenc
 
 
 @pytest.mark.report
-def test_generate_report(modelfitting_catalog, sim11_r_01_reference, sim11_r_simulation, datafiles, module_output_area):
+def test_generate_report(modelfitting_run, sim11_r_01_reference, sim11_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
+    modelfitting_catalog = modelfitting_run.catalog
     module_output_area = module_output_area / modelfitting_catalog.meta['engine']
     image = plot.Image(datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz')
     with plot.Report(module_output_area / 'report.pdf') as report:
@@ -108,3 +117,5 @@ def test_generate_report(modelfitting_catalog, sim11_r_01_reference, sim11_r_sim
             'model_mag_r'
         )
         report.add(hist)
+
+        report.add(plot.RunResult(modelfitting_run.run))

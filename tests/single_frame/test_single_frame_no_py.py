@@ -7,6 +7,7 @@
 # when the measurement frame matched the detection image, and when it was configured
 # separately
 #
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -18,7 +19,7 @@ from util.validation import CrossValidation, intersect
 
 
 @pytest.fixture(scope='module')
-def single_frame_catalog(sourcextractor, datafiles, module_output_area, tolerances):
+def single_frame_run(sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on a single frame. Overrides the output area per test so
     SExtractor is only run once for this setup.
@@ -36,7 +37,12 @@ def single_frame_catalog(sourcextractor, datafiles, module_output_area, toleranc
 
     catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
-    return catalog[bright_filter]
+    return SimpleNamespace(run=run, catalog=catalog[bright_filter])
+
+
+@pytest.fixture(scope='module')
+def single_frame_catalog(single_frame_run):
+    return single_frame_run.catalog
 
 
 @pytest.fixture(scope='module')
@@ -61,7 +67,7 @@ def test_detection(single_frame_cross, sim11_r_01_cross):
     ]
 )
 def test_flux(single_frame_catalog, single_frame_cross, sim11_r_01_reference, sim11_r_01_cross,
-                   flux_column, reference_flux_column):
+              flux_column, reference_flux_column):
     """
     Cross-validate the flux columns.
     We use only the hits, and ignore the detections that are a miss.
@@ -85,11 +91,11 @@ def test_flux(single_frame_catalog, single_frame_cross, sim11_r_01_reference, si
 
 
 @pytest.mark.report
-def test_generate_report(single_frame_catalog, sim11_r_01_reference, sim11_r_simulation, datafiles, module_output_area):
+def test_generate_report(single_frame_run, sim11_r_01_reference, sim11_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     plot.generate_report(
         module_output_area / 'report.pdf', sim11_r_simulation, datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
-        single_frame_catalog, sim11_r_01_reference
+        single_frame_run.catalog, sim11_r_01_reference, run=single_frame_run.run
     )

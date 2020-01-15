@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 from astropy.table import Table
@@ -8,8 +10,9 @@ from util.validation import CrossValidation
 
 engines = ['levmar', 'gsl']
 
+
 @pytest.fixture(scope='module', params=engines)
-def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area, tolerances):
+def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on multiple frames. Overrides the output area per test so
     SExtractor is only run once for this setup.
@@ -38,7 +41,12 @@ def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area,
     catalog['model_mag_g_err'][catalog['model_mag_g_err'] >= 99.] = np.nan
     catalog.meta['engine'] = request.param
     assert len(catalog)
-    return catalog[bright_filter]
+    return SimpleNamespace(run=run, catalog=catalog[bright_filter])
+
+
+@pytest.fixture(scope='module')
+def modelfitting_catalog(modelfitting_run):
+    return modelfitting_run.catalog
 
 
 @pytest.fixture(scope='module')
@@ -87,12 +95,13 @@ def test_magnitude(modelfitting_catalog, r_cross, g_cross):
 
 @pytest.mark.report
 @pytest.mark.slow
-def test_generate_report(modelfitting_catalog, sim11_r_simulation, sim11_g_simulation,
+def test_generate_report(modelfitting_run, sim11_r_simulation, sim11_g_simulation,
                          sim11_r_reference, sim11_g_reference,
                          datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
+    modelfitting_catalog = modelfitting_run.catalog
     module_output_area = module_output_area / modelfitting_catalog.meta['engine']
 
     # Filter not fitted sources
@@ -134,7 +143,8 @@ def test_generate_report(modelfitting_catalog, sim11_r_simulation, sim11_g_simul
         )
         mag_r.add(
             'SourceXtractor++',
-            modelfitting_catalog[not_flagged], 'world_centroid_alpha', 'world_centroid_delta', 'model_mag_r', 'model_mag_r_err',
+            modelfitting_catalog[not_flagged], 'world_centroid_alpha', 'world_centroid_delta', 'model_mag_r',
+            'model_mag_r_err',
             marker='.'
         )
         report.add(mag_r)
@@ -147,7 +157,8 @@ def test_generate_report(modelfitting_catalog, sim11_r_simulation, sim11_g_simul
         )
         mag_g.add(
             'SourceXtractor++',
-            modelfitting_catalog[not_flagged], 'world_centroid_alpha', 'world_centroid_delta', 'model_mag_r', 'model_mag_r_err',
+            modelfitting_catalog[not_flagged], 'world_centroid_alpha', 'world_centroid_delta', 'model_mag_r',
+            'model_mag_r_err',
             marker='.'
         )
         report.add(mag_g)
@@ -158,3 +169,5 @@ def test_generate_report(modelfitting_catalog, sim11_r_simulation, sim11_g_simul
             'pixel_centroid_x', 'pixel_centroid_y', f'fmf_flags'
         )
         report.add(flags)
+
+        report.add(plot.RunResult(modelfitting_run.run))

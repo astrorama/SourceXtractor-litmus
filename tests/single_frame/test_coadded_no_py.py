@@ -1,4 +1,5 @@
 import os
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -10,7 +11,7 @@ from util.validation import CrossValidation, intersect
 
 
 @pytest.fixture(scope='module')
-def coadded_catalog(sourcextractor, datafiles, module_output_area, tolerances):
+def coadded_run(sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on a coadded single frame. Overrides the output area per test so
     SExtractor is only run once for this setup.
@@ -32,7 +33,12 @@ def coadded_catalog(sourcextractor, datafiles, module_output_area, tolerances):
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
     for nan_col in ['isophotal_mag', 'auto_mag', 'isophotal_mag_err', 'auto_mag_err']:
         catalog[nan_col][catalog[nan_col] >= 99.] = np.nan
-    return catalog[bright_filter]
+    return SimpleNamespace(run=run, catalog=catalog[bright_filter])
+
+
+@pytest.fixture(scope='module')
+def coadded_catalog(coadded_run):
+    return coadded_run.catalog
 
 
 @pytest.mark.parametrize(
@@ -67,13 +73,14 @@ def test_flux(coadded_catalog, sim11_r_reference, flux_column, reference_flux_co
 
 
 @pytest.mark.report
-def test_generate_report(coadded_catalog, sim11_r_reference, sim11_r_simulation, datafiles, module_output_area):
+def test_generate_report(coadded_run, sim11_r_reference, sim11_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     plot.generate_report(
         module_output_area / 'report.pdf', sim11_r_simulation,
         datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
-        coadded_catalog, sim11_r_reference,
+        coadded_run.catalog, sim11_r_reference,
         weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz',
+        run=coadded_run.run
     )
