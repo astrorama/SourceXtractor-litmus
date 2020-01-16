@@ -1,5 +1,9 @@
 astropy
+configparser
+enum34
 matplotlib
+memory_profiler
 numpy
+pathlib
 pytest
 scipy
