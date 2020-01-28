@@ -1,4 +1,4 @@
-import os
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -10,8 +10,9 @@ from util.validation import CrossValidation
 
 engines = ['levmar', 'gsl']
 
-@pytest.fixture(params=engines)
-def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area, tolerances):
+
+@pytest.fixture(scope='module', params=engines)
+def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on multiple frames. Overrides the output area per test so
     SExtractor is only run once for this setup.
@@ -20,21 +21,19 @@ def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area,
     module_output_area = module_output_area / request.param
     sourcextractor.set_output_directory(module_output_area)
 
-    output_catalog = module_output_area / 'output.fits'
-    if not os.path.exists(output_catalog):
-        run = sourcextractor(
-            'engine={}'.format(request.param),
-            output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting,SourceFlags',
-            detection_image=datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
-            weight_image=datafiles / 'sim11' / 'img' / 'sim11.weight.fits.gz',
-            weight_type='weight',
-            weight_absolute=True,
-            python_config_file=datafiles / 'sim11' / 'sim11_multi_modelfitting.py',
-            thread_count=4
-        )
-        assert run.exit_code == 0
+    run = sourcextractor(
+        'engine={}'.format(request.param),
+        output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting,SourceFlags',
+        detection_image=datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11.weight.fits.gz',
+        weight_type='weight',
+        weight_absolute=True,
+        python_config_file=datafiles / 'sim11' / 'sim11_multi_modelfitting.py',
+        thread_count=4
+    )
+    assert run.exit_code == 0
 
-    catalog = Table.read(output_catalog)
+    catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
     catalog['model_flux_r_err'][catalog['model_flux_r_err'] >= 99.] = np.nan
     catalog['model_mag_r_err'][catalog['model_mag_r_err'] >= 99.] = np.nan
@@ -42,10 +41,15 @@ def modelfitting_catalog(request, sourcextractor, datafiles, module_output_area,
     catalog['model_mag_g_err'][catalog['model_mag_g_err'] >= 99.] = np.nan
     catalog.meta['engine'] = request.param
     assert len(catalog)
-    return catalog[bright_filter]
+    return SimpleNamespace(run=run, catalog=catalog[bright_filter])
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
+def modelfitting_catalog(modelfitting_run):
+    return modelfitting_run.catalog
+
+
+@pytest.fixture(scope='module')
 def r_cross(modelfitting_catalog, sim11_r_simulation, datafiles, tolerances):
     image = Image(
         datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
@@ -55,7 +59,7 @@ def r_cross(modelfitting_catalog, sim11_r_simulation, datafiles, tolerances):
     return cross(modelfitting_catalog['pixel_centroid_x'], modelfitting_catalog['pixel_centroid_y'])
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def g_cross(modelfitting_catalog, sim11_g_simulation, datafiles, tolerances):
     image = Image(
         datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
@@ -91,12 +95,13 @@ def test_magnitude(modelfitting_catalog, r_cross, g_cross):
 
 @pytest.mark.report
 @pytest.mark.slow
-def test_generate_report(modelfitting_catalog, sim11_r_simulation, sim11_g_simulation,
+def test_generate_report(modelfitting_run, sim11_r_simulation, sim11_g_simulation,
                          sim11_r_reference, sim11_g_reference,
                          datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
+    modelfitting_catalog = modelfitting_run.catalog
     module_output_area = module_output_area / modelfitting_catalog.meta['engine']
 
     # Filter not fitted sources
@@ -138,7 +143,8 @@ def test_generate_report(modelfitting_catalog, sim11_r_simulation, sim11_g_simul
         )
         mag_r.add(
             'SourceXtractor++',
-            modelfitting_catalog[not_flagged], 'world_centroid_alpha', 'world_centroid_delta', 'model_mag_r', 'model_mag_r_err',
+            modelfitting_catalog[not_flagged], 'world_centroid_alpha', 'world_centroid_delta', 'model_mag_r',
+            'model_mag_r_err',
             marker='.'
         )
         report.add(mag_r)
@@ -151,7 +157,8 @@ def test_generate_report(modelfitting_catalog, sim11_r_simulation, sim11_g_simul
         )
         mag_g.add(
             'SourceXtractor++',
-            modelfitting_catalog[not_flagged], 'world_centroid_alpha', 'world_centroid_delta', 'model_mag_r', 'model_mag_r_err',
+            modelfitting_catalog[not_flagged], 'world_centroid_alpha', 'world_centroid_delta', 'model_mag_r',
+            'model_mag_r_err',
             marker='.'
         )
         report.add(mag_g)
@@ -162,3 +169,5 @@ def test_generate_report(modelfitting_catalog, sim11_r_simulation, sim11_g_simul
             'pixel_centroid_x', 'pixel_centroid_y', f'fmf_flags'
         )
         report.add(flags)
+
+        report.add(plot.RunResult(modelfitting_run.run))

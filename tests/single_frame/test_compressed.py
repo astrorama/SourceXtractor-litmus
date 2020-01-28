@@ -1,4 +1,4 @@
-import os
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -10,33 +10,36 @@ from util.image import Image
 from util.validation import intersect, CrossValidation
 
 
-@pytest.fixture
-def compressed_catalog(sourcextractor, datafiles, module_output_area, tolerances):
+@pytest.fixture(scope='module')
+def compressed_run(sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on a coadded single frame stored on a compressed FITS file,
     using tile compression.
     """
     sourcextractor.set_output_directory(module_output_area)
 
-    output_catalog = module_output_area / 'output.fits'
-    if not os.path.exists(output_catalog):
-        run = sourcextractor(
-            output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels',
-            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.compressed.fits',
-            weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.compressed.fits',
-            weight_type='weight',
-            weight_absolute=True
-        )
-        assert run.exit_code == 0
+    run = sourcextractor(
+        output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels',
+        detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.compressed.fits',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.compressed.fits',
+        weight_type='weight',
+        weight_absolute=True
+    )
+    assert run.exit_code == 0
 
-    catalog = Table.read(output_catalog)
+    catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
     for nan_col in ['isophotal_mag', 'auto_mag', 'isophotal_mag_err', 'auto_mag_err']:
         catalog[nan_col][catalog[nan_col] >= 99.] = np.nan
-    return catalog[bright_filter]
+    return SimpleNamespace(run=run, catalog=catalog[bright_filter])
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
+def compressed_catalog(compressed_run):
+    return compressed_run.catalog
+
+
+@pytest.fixture(scope='module')
 def compressed_frame_cross(compressed_catalog, sim11_r_simulation, datafiles, tolerances):
     image = Image(
         datafiles / 'sim11' / 'img' / 'sim11_r.compressed.fits',
@@ -78,13 +81,14 @@ def test_flux(compressed_catalog, sim11_r_reference, flux_column, reference_flux
 
 
 @pytest.mark.report
-def test_generate_report(compressed_catalog, sim11_r_reference, sim11_r_simulation, datafiles, module_output_area):
+def test_generate_report(compressed_run, sim11_r_reference, sim11_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     plot.generate_report(
         module_output_area / 'report.pdf', sim11_r_simulation,
         datafiles / 'sim11' / 'img' / 'sim11_r.compressed.fits',
-        compressed_catalog, sim11_r_reference,
+        compressed_run.catalog, sim11_r_reference,
         weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.compressed.fits',
+        run=compressed_run.run
     )

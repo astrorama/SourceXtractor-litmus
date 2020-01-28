@@ -1,5 +1,5 @@
 import itertools
-import os
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -10,8 +10,8 @@ from util.image import Image
 from util.validation import CrossValidation, intersect
 
 
-@pytest.fixture
-def multi_frame_catalog(sourcextractor, datafiles, module_output_area, tolerances):
+@pytest.fixture(scope='module')
+def multi_frame_run(sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on multiple frames. Overrides the output area per test so
     SExtractor is only run once for this setup.
@@ -19,23 +19,26 @@ def multi_frame_catalog(sourcextractor, datafiles, module_output_area, tolerance
     """
     sourcextractor.set_output_directory(module_output_area)
 
-    output_catalog = module_output_area / 'output.fits'
-    if not os.path.exists(output_catalog):
-        run = sourcextractor(
-            output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
-            detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
-            weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz',
-            weight_type='weight',
-            weight_absolute=True,
-            python_config_file=datafiles / 'sim11' / 'sim11_multiframe.py'
-        )
-        assert run.exit_code == 0
+    run = sourcextractor(
+        output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels,AperturePhotometry',
+        detection_image=datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
+        weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz',
+        weight_type='weight',
+        weight_absolute=True,
+        python_config_file=datafiles / 'sim11' / 'sim11_multiframe.py'
+    )
+    assert run.exit_code == 0
 
-    catalog = Table.read(output_catalog)
+    catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
     catalog['auto_mag'][catalog['auto_mag'] >= 99.] = np.nan
     catalog['aperture_mag'][catalog['aperture_mag'] >= 99.] = np.nan
-    return catalog[bright_filter]
+    return SimpleNamespace(run=run, catalog=catalog[bright_filter])
+
+
+@pytest.fixture(scope='module')
+def multi_frame_catalog(multi_frame_run):
+    return multi_frame_run.catalog
 
 
 @pytest.fixture
@@ -126,7 +129,7 @@ def test_aper_flux(frame, aper_idx, multi_frame_catalog, sim11_r_reference, mult
 
 
 @pytest.mark.report
-def test_generate_report(multi_frame_catalog, sim11_r_reference, sim11_r_simulation, datafiles, module_output_area):
+def test_generate_report(multi_frame_run, sim11_r_reference, sim11_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
@@ -134,6 +137,7 @@ def test_generate_report(multi_frame_catalog, sim11_r_reference, sim11_r_simulat
         datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
         weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz'
     )
+    multi_frame_catalog = multi_frame_run.catalog
     with plot.Report(module_output_area / 'report.pdf') as report:
         loc_map = plot.Location(image, sim11_r_simulation)
         loc_map.add('SExtractor2 (R)', sim11_r_reference, 'X_IMAGE', 'Y_IMAGE', 'ISOAREA_IMAGE', marker='1')
@@ -187,3 +191,5 @@ def test_generate_report(multi_frame_catalog, sim11_r_reference, sim11_r_simulat
                 'pixel_centroid_x', 'pixel_centroid_y', f'auto_flags:{i}'
             )
             report.add(flag_r)
+
+        report.add(plot.RunResult(multi_frame_run.run))

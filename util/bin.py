@@ -1,6 +1,9 @@
-import os.path
 import logging
 import subprocess
+import tempfile
+
+import memory_profiler as mp
+import os.path
 
 
 class ExecutionResult(object):
@@ -8,16 +11,21 @@ class ExecutionResult(object):
     Holds information about an execution result
     """
 
-    def __init__(self, exit_code, stdout, stderr):
+    def __init__(self, exit_code, stdout, stderr, interval, memory_usage):
         self.exit_code = exit_code
         self.stdout = stdout
         self.stderr = stderr
+        self.duration = interval * len(memory_usage)
+        self.interval = interval
+        self.memory_usage = memory_usage
 
 
 class Executable(object):
     """
     Convenience wrapper for subprocess
     """
+
+    INTERVAL = .1
 
     def __init__(self, exe):
         """
@@ -37,6 +45,14 @@ class Executable(object):
         full_args = [self.__exe] + list(args)
         logging.debug(' '.join([f'"{a}"' for a in full_args]))
 
-        proc = subprocess.Popen(full_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
-        stdout, stderr = proc.communicate()
-        return ExecutionResult(proc.wait(), stdout.decode('utf-8'), stderr.decode('utf-8'))
+        stdout = tempfile.TemporaryFile('w+b')
+        stderr = tempfile.TemporaryFile('w+b')
+
+        proc = subprocess.Popen(full_args, stdout=stdout, stderr=stderr, **kwargs)
+        mem = mp.memory_usage(proc=proc, interval=self.INTERVAL, include_children=True)
+        stdout.seek(0)
+        stderr.seek(0)
+        return ExecutionResult(
+            proc.wait(), stdout.read().decode('utf-8'), stderr.read().decode('utf-8'),
+            self.INTERVAL, mem
+        )
