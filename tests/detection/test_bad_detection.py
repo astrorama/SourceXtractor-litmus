@@ -20,7 +20,7 @@ def test_detection_no_image(sourcextractor, datafiles):
         output_properties='SourceIDs,PixelCentroid,SourceFlags',
     )
     assert run.exit_code == 1
-    assert 'non-image HDU' in run.stderr
+    assert 'Can\'t find 2D image' in run.stderr
 
 
 def test_weight_no_fits(sourcextractor, datafiles):
@@ -51,4 +51,4 @@ def test_weight_no_image(sourcextractor, datafiles):
         output_properties='SourceIDs,PixelCentroid,SourceFlags',
     )
     assert run.exit_code == 1
-    assert 'non-image HDU' in run.stderr
+    assert 'Can\'t find 2D image' in run.stderr
