@@ -6,7 +6,7 @@ def test_missing_weight_image(sourcextractor, datafiles):
     Pass a missing weight image
     """
     run = sourcextractor(
-        detection_image=datafiles / 'simple' / 'boundary.fits',
+        detection_image=datafiles / 'simple' / 'boundary.fits.gz',
         weight_image='/tmp/missing/weight.fits',
         weight_type='weight'
     )
@@ -18,7 +18,7 @@ def test_malformed_weight_image(sourcextractor, datafiles):
     Pass a corrupted weight image
     """
     run = sourcextractor(
-        detection_image=datafiles / 'simple' / 'boundary.fits',
+        detection_image=datafiles / 'simple' / 'boundary.fits.gz',
         weight_image=datafiles / 'sim11' / 'sim11_r.list',
         weight_type='weight'
     )
@@ -30,7 +30,7 @@ def test_weight_bad_size(sourcextractor, datafiles):
     Pass a weight image with a mismatching size
     """
     run = sourcextractor(
-        detection_image=datafiles / 'simple' / 'boundary.fits',
+        detection_image=datafiles / 'simple' / 'boundary.fits.gz',
         weight_image=datafiles / 'simple' / 'saturated_flags.fits',
         weight_type='weight'
     )
@@ -42,7 +42,7 @@ def test_weight_mask(sourcextractor, datafiles):
     Pass a proper weight image, which filter the sources that are on the boundary
     """
     run = sourcextractor(
-        detection_image=datafiles / 'simple' / 'boundary.fits',
+        detection_image=datafiles / 'simple' / 'boundary.fits.gz',
         weight_image=datafiles / 'simple' / 'boundary_weights.fits',
         weight_type='weight',
         detection_threshold=5,

@@ -9,7 +9,7 @@ def test_saturated_keyword(sourcextractor, datafiles):
     Check if the saturated flag is set based on the image header when the configuration
     does not specify.
     """
-    saturated_fits = datafiles / 'simple' / 'saturated.fits'
+    saturated_fits = datafiles / 'simple' / 'saturated.fits.gz'
     run = sourcextractor(
         detection_image=saturated_fits,
         output_properties='SourceIDs,PixelCentroid,SourceFlags',
@@ -27,7 +27,7 @@ def test_saturated_override(sourcextractor, datafiles):
     """
     Check if the saturated flag is *NOT* set when we override the detection image saturation
     """
-    saturated_fits = datafiles / 'simple' / 'saturated.fits'
+    saturated_fits = datafiles / 'simple' / 'saturated.fits.gz'
     run = sourcextractor(
         detection_image=saturated_fits,
         output_properties='SourceIDs,PixelCentroid,SourceFlags',
@@ -45,7 +45,7 @@ def test_boundary(sourcextractor, datafiles):
     """
     Check if the boundary flag is set on two of the three sources
     """
-    saturated_fits = datafiles / 'simple' / 'boundary.fits'
+    saturated_fits = datafiles / 'simple' / 'boundary.fits.gz'
     run = sourcextractor(
         detection_image=saturated_fits,
         output_properties='SourceIDs,PixelCentroid,SourceFlags',
@@ -64,7 +64,7 @@ def test_blended(sourcextractor, datafiles):
     """
     There are two de-blended sources
     """
-    neighbours_fits = datafiles / 'simple' / 'neighbours.fits'
+    neighbours_fits = datafiles / 'simple' / 'neighbours.fits.gz'
     run = sourcextractor(
         detection_image=neighbours_fits,
         output_properties='SourceIDs,PixelCentroid,SourceFlags',
