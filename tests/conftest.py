@@ -108,7 +108,7 @@ class SExtractorxx(object):
 
         self.__output_catalog = cfg_args.get('output_catalog_filename', None)
         if self.__output_catalog and os.path.exists(self.__output_catalog):
-            logger.warning(f'Overwriting {self.__output_catalog}')
+            logger.debug(f'Overwriting {self.__output_catalog}')
         result = self.__exe.run(*cmd_args, cwd=self.__output_dir, env=self.__env)
 
         if result.exit_code != 0 and self.__output_catalog and os.path.exists(self.__output_catalog):
