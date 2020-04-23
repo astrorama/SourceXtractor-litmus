@@ -79,4 +79,4 @@ def test_background_bad_smoothing_box(sourcextractor, datafiles, module_output_a
         log_file='sourcextractor_{}.log'.format(smoothing_box)
     )
     assert run.exit_code == 1
-    assert 'There are value(s) < 1 in smoothing-box-size: {}'.format(smoothing_box) in run.stderr
+    assert ' in smoothing-box-size: {}'.format(smoothing_box) in run.stderr
