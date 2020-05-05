@@ -953,6 +953,22 @@ def generate_report(output, simulation, image_path, target, reference, weight_im
             )
             report.add(elongation)
 
+        if 'ellipticity' in target.dtype.names:
+            ellipticity = Scatter('ELLIPTICITY vs ellipticity', simulation)
+            ellipticity.add(
+                'SExtractor2', reference,
+                'ALPHA_SKY', 'DELTA_SKY',
+                'ELLIPTICITY', None,
+                marker='o'
+            )
+            ellipticity.add(
+                'SourceXtractor++', target,
+                'world_centroid_alpha', 'world_centroid_delta',
+                'ellipticity', None,
+                marker='.'
+            )
+            report.add(ellipticity)
+
         src_flags = Flags(image)
         src_flags.set_sextractor2(
             'SExtractor2', reference,

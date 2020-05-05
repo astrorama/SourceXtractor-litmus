@@ -93,6 +93,7 @@ def test_elongation(coadded_catalog, coadded_frame_cross, sim11_r_reference, sim
 
     assert not_flagged.sum() > 0
     assert np.isclose(catalog_hits['elongation'][not_flagged], ref_hits['ELONGATION'][not_flagged]).all()
+    assert np.isclose(catalog_hits['ellipticity'][not_flagged], ref_hits['ELLIPTICITY'][not_flagged], rtol=1e-4).all()
 
 
 @pytest.mark.report
