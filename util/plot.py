@@ -415,9 +415,10 @@ class Scatter(Plot):
         """
         closest = self.__simulation.get_closest(catalog[alpha_col], catalog[delta_col])
         val = get_column(catalog, val_col)
-        err = get_column(catalog, err_col)
+        if err_col:
+            err = get_column(catalog, err_col)
+            self.__ax_err.scatter(closest.magnitude, err, **kwargs)
         self.__ax_val.scatter(closest.magnitude, val, label=label, **kwargs)
-        self.__ax_err.scatter(closest.magnitude, err, **kwargs)
 
     def get_figures(self):
         """
@@ -934,6 +935,23 @@ def generate_report(output, simulation, image_path, target, reference, weight_im
                     f'aperture_mag:0:{i}'
                 )
             report.add(aper_hist)
+
+        # Try shape columns
+        if 'elongation' in target.dtype.names:
+            elongation = Scatter('ELONGATION vs elongation', simulation)
+            elongation.add(
+                'SExtractor2', reference,
+                'ALPHA_SKY', 'DELTA_SKY',
+                'ELONGATION', None,
+                marker='o'
+            )
+            elongation.add(
+                'SourceXtractor++', target,
+                'world_centroid_alpha', 'world_centroid_delta',
+                'elongation', None,
+                marker='.'
+            )
+            report.add(elongation)
 
         src_flags = Flags(image)
         src_flags.set_sextractor2(

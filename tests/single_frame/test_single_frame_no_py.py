@@ -27,8 +27,17 @@ def single_frame_run(sourcextractor, datafiles, module_output_area, tolerances):
     """
     sourcextractor.set_output_directory(module_output_area)
 
+    properties = ['SourceIDs',
+                  'PixelCentroid',
+                  'WorldCentroid',
+                  'AutoPhotometry',
+                  'IsophotalFlux',
+                  'ShapeParameters',
+                  'SourceFlags',
+                  'NDetectedPixels']
+
     run = sourcextractor(
-        output_properties='SourceIDs,PixelCentroid,WorldCentroid,AutoPhotometry,IsophotalFlux,ShapeParameters,SourceFlags,NDetectedPixels',
+        output_properties=','.join(properties),
         detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
         psf_filename=datafiles / 'sim11' / 'psf' / 'sim11_r_01.psf',
         python_config_file=None
@@ -88,6 +97,20 @@ def test_flux(single_frame_catalog, single_frame_cross, sim11_r_01_reference, si
     ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
 
     assert np.median(catalog_dist - ref_dist) <= 0.
+
+
+def test_elongation(single_frame_catalog, single_frame_cross, sim11_r_01_reference, sim11_r_01_cross):
+    """
+    Cross-validate the elongation column.
+    """
+    catalog_intersect, ref_intersect = intersect(single_frame_cross, sim11_r_01_cross)
+    catalog_hits = single_frame_catalog[single_frame_cross.all_catalog[catalog_intersect]]
+    ref_hits = sim11_r_01_reference[sim11_r_01_cross.all_catalog[ref_intersect]]
+
+    not_flagged = np.logical_and(catalog_hits['source_flags'] == 0, ref_hits['FLAGS'] == 0)
+
+    assert not_flagged.sum() > 0
+    assert np.isclose(catalog_hits['elongation'][not_flagged], ref_hits['ELONGATION'][not_flagged]).all()
 
 
 @pytest.mark.report
