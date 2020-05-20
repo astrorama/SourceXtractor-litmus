@@ -8,7 +8,7 @@ from matplotlib.gridspec import GridSpec
 from scipy.spatial import KDTree
 from scipy.stats import ks_2samp
 
-from util.validation import CrossValidation
+from util.matching import CrossMatching
 from . import stuff
 from .catalog import get_column
 from .image import Image
@@ -638,7 +638,7 @@ class Completeness(Plot):
             Maximum distance, in pixels, to be a source considered a match to a real source.
         """
         super(Completeness, self).__init__()
-        self.__cross_validation = CrossValidation(image, simulation, max_dist, bin_size)
+        self.__cross_validation = CrossMatching(image, simulation, max_dist, bin_size)
         self.__image = image
 
         self.__max_dist = max_dist

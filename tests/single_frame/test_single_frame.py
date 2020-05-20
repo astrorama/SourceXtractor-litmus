@@ -14,7 +14,7 @@ from astropy.table import Table
 
 from util import plot
 from util.catalog import get_column
-from util.validation import CrossValidation, intersect
+from util.matching import CrossMatching, intersect
 
 
 @pytest.fixture(scope='module')
@@ -57,7 +57,7 @@ def single_frame_catalog(single_frame_run):
 @pytest.fixture(scope='module')
 def single_frame_cross(single_frame_run, sim11_r_simulation, datafiles, tolerances):
     detection_image = datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz'
-    cross = CrossValidation(detection_image, sim11_r_simulation, max_dist=tolerances['distance'])
+    cross = CrossMatching(detection_image, sim11_r_simulation, max_dist=tolerances['distance'])
     return cross(single_frame_run.catalog['pixel_centroid_x'], single_frame_run.catalog['pixel_centroid_y'])
 
 

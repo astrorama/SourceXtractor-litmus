@@ -7,7 +7,7 @@ from astropy.table import Table
 from util import plot
 from util.catalog import get_column
 from util.image import Image
-from util.validation import intersect, CrossValidation
+from util.matching import intersect, CrossMatching
 
 
 @pytest.fixture(scope='module')
@@ -45,7 +45,7 @@ def compressed_frame_cross(compressed_catalog, sim11_r_simulation, datafiles, to
         datafiles / 'sim11' / 'img' / 'sim11_r.compressed.fits',
         weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.compressed.fits'
     )
-    cross = CrossValidation(image, sim11_r_simulation, max_dist=tolerances['distance'])
+    cross = CrossMatching(image, sim11_r_simulation, max_dist=tolerances['distance'])
     return cross(compressed_catalog['pixel_centroid_x'], compressed_catalog['pixel_centroid_y'])
 
 

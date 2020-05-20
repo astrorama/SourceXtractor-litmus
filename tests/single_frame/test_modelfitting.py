@@ -5,7 +5,7 @@ import pytest
 from astropy.table import Table
 
 from util import plot
-from util.validation import CrossValidation
+from util.matching import CrossMatching
 
 engines = ['levmar', 'gsl']
 
@@ -44,7 +44,7 @@ def modelfitting_catalog(modelfitting_run):
 @pytest.fixture(scope='module')
 def modelfitting_cross(modelfitting_catalog, sim11_r_simulation, datafiles, tolerances):
     detection_image = datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz'
-    cross = CrossValidation(detection_image, sim11_r_simulation, max_dist=tolerances['distance'])
+    cross = CrossMatching(detection_image, sim11_r_simulation, max_dist=tolerances['distance'])
     return cross(modelfitting_catalog['pixel_centroid_x'], modelfitting_catalog['pixel_centroid_y'])
 
 

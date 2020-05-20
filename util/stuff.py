@@ -106,10 +106,16 @@ class Simulation(object):
 
     @property
     def stars(self):
+        """
+        :return: Only the stars
+        """
         return self.__stars
 
     @property
     def galaxies(self):
+        """
+        :return: Only the galaxies
+        """
         return self.__galaxies
 
     @property

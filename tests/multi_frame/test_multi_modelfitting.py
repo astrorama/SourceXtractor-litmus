@@ -6,7 +6,7 @@ from astropy.table import Table
 
 from util import plot
 from util.image import Image
-from util.validation import CrossValidation
+from util.matching import CrossMatching
 
 engines = ['levmar', 'gsl']
 
@@ -55,7 +55,7 @@ def r_cross(modelfitting_catalog, sim11_r_simulation, datafiles, tolerances):
         datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
         weight_image=datafiles / 'sim11' / 'img' / 'sim11.weight.fits.gz'
     )
-    cross = CrossValidation(image, sim11_r_simulation, max_dist=tolerances['distance'])
+    cross = CrossMatching(image, sim11_r_simulation, max_dist=tolerances['distance'])
     return cross(modelfitting_catalog['pixel_centroid_x'], modelfitting_catalog['pixel_centroid_y'])
 
 
@@ -65,7 +65,7 @@ def g_cross(modelfitting_catalog, sim11_g_simulation, datafiles, tolerances):
         datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
         weight_image=datafiles / 'sim11' / 'img' / 'sim11.weight.fits.gz'
     )
-    cross = CrossValidation(image, sim11_g_simulation, max_dist=tolerances['distance'])
+    cross = CrossMatching(image, sim11_g_simulation, max_dist=tolerances['distance'])
     return cross(modelfitting_catalog['pixel_centroid_x'], modelfitting_catalog['pixel_centroid_y'])
 
 

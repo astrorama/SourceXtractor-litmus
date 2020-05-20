@@ -1,4 +1,3 @@
-import os
 from types import SimpleNamespace
 
 import numpy as np
@@ -7,7 +6,7 @@ from astropy.table import Table
 
 from util import plot
 from util.catalog import get_column
-from util.validation import CrossValidation, intersect
+from util.matching import intersect
 
 
 @pytest.fixture(scope='module')

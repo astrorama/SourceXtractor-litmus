@@ -7,7 +7,7 @@ from astropy.table import Table
 
 from util import plot
 from util.image import Image
-from util.validation import CrossValidation, intersect
+from util.matching import CrossMatching, intersect
 
 """
 Note that these tests are identical to test_multi_frame.py
@@ -51,7 +51,7 @@ def mef_frame_cross(mef_catalog, sim11_r_simulation, datafiles, tolerances):
         datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
         weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz'
     )
-    cross = CrossValidation(image, sim11_r_simulation, max_dist=tolerances['distance'])
+    cross = CrossMatching(image, sim11_r_simulation, max_dist=tolerances['distance'])
     return cross(mef_catalog['pixel_centroid_x'], mef_catalog['pixel_centroid_y'])
 
 

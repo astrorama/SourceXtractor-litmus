@@ -6,7 +6,7 @@ from astropy.table import Table
 
 from util import plot
 from util.catalog import get_column
-from util.validation import intersect
+from util.matching import intersect
 
 
 @pytest.fixture(scope='module')

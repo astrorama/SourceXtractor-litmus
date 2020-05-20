@@ -4,36 +4,90 @@ import numpy as np
 from scipy.spatial import KDTree
 
 from util.image import Image
+from util.stuff import Simulation
 
 
-class CrossValidation(object):
-    class CrossValidationResult(object):
-        def __init__(self, stars_found, stars_not_found, stars_recall, stars_catalog,
-                     galaxies_found, galaxies_not_found, galaxies_recall, galaxies_catalog,
-                     misids):
+class CrossMatching(object):
+    """
+    This class helps cross-matching objects from the simulation and from a catalog
+    using an image to retrieve non-matched objects (objects from the simulation that are
+    within the image but did not match any from the catalog)
+    """
+
+    class CrossMatchResult(object):
+        """
+        Holds the result from a catalog/image/simulation cross match
+        """
+
+        def __init__(self, stars_found: np.recarray, stars_missed: np.recarray, stars_recall:[float], stars_catalog:[int],
+                     galaxies_found: np.recarray, galaxies_missed: np.recarray, galaxies_recall:[float], galaxies_catalog:[int],
+                     misids:[float]):
+            """
+            Constructor
+            :param stars_found:
+                 Information about the true matched stars
+            :param stars_missed:
+                Information about the true non-matched stars
+            :param stars_recall:
+                Histogram of star recall (by magnitude)
+            :param stars_catalog:
+                Catalog indexes that correspond to true stars
+            :param galaxies_found:
+                Information about the true matched galaxies
+            :param galaxies_missed:
+                Information about the true non-matched galaxies
+            :param galaxies_recall:
+                Histogram of galaxy recall (by magnitude)
+            :param galaxies_catalog:
+                Catalog indexes that correspond to true galaxies
+            :param misids:
+                Histogram of mis-identifications (by magnitude)
+            """
             self.stars_found = stars_found
-            self.stars_not_found = stars_not_found
+            self.stars_not_found = stars_missed
             self.stars_recall = stars_recall
             self.stars_catalog = stars_catalog
             self.galaxies_found = galaxies_found
-            self.galaxies_not_found = galaxies_not_found
+            self.galaxies_not_found = galaxies_missed
             self.galaxies_recall = galaxies_recall
             self.galaxies_catalog = galaxies_catalog
             self.misids = misids
 
         @property
         def all_catalog(self):
+            """
+            :return: All indexes from the catalog that have been matches, regardless of the type.
+            :note: Use stars_catalog or galaxies_catalog if you want to check for attributes specific to one or the
+                   other (i.e. there is no bulge for stars)
+            """
             return np.append(self.stars_catalog, self.galaxies_catalog)
 
         @property
         def all_magnitudes(self):
+            """
+            :return: All magnitudes, from matched stars and galaxies
+            """
             return np.append(self.stars_found.mag, self.galaxies_found.mag)
 
         @property
         def all_fluxes(self):
+            """
+            :return: All fluxes, from matched stars and galaxies
+            """
             return np.append(self.stars_found.flux, self.galaxies_found.flux)
 
-    def __init__(self, image, simulation, max_dist=0.5, bin_size=1):
+    def __init__(self, image: (Image, str, Path), simulation: Simulation, max_dist: float = 0.5, bin_size: float = 1):
+        """
+        Constructor
+        :param image:
+            An Image object, or a path to a FITS image
+        :param simulation:
+            The parsed content of an Astromatic stuff simulation
+        :param max_dist:
+            Two objects are considered a cross-match if they are closer than this number of pixels
+        :param bin_size:
+            Bin size (in magnitude units) used for the histogram of stars and galaxies
+        """
         if isinstance(image, str) or isinstance(image, Path):
             self.__image = Image(image)
         else:
@@ -65,9 +119,24 @@ class CrossValidation(object):
 
     @property
     def bin_centers(self):
+        """
+        :return: The center of the bins used for the magnitude histograms
+        """
         return self.__bin_size / 2. * (self.__edges[1:] + self.__edges[:-1])
 
-    def __call__(self, x, y, mag=None):
+    def __call__(self, x: np.array, y: np.array, mag: np.array = None):
+        """
+        Perform a cross-matching between a catalog and the simulation part contained within the image
+        :param x:
+            X coordinate, in pixels, of the detected object
+        :param y:
+            Y coordinate, in pixels, of the detected object
+        :param mag:
+            Optional, measured magnitude. This will be used to bin mis-identified sources, as they do not
+            have a "true" magnitude to do the binning.
+        :return:
+            A CrossMatchResult object containing the matches and mismatches
+        """
         nstars = len(self.stars)
         ngalaxies = len(self.galaxies)
 
@@ -123,14 +192,14 @@ class CrossValidation(object):
         else:
             misids = None
 
-        return CrossValidation.CrossValidationResult(
+        return CrossMatching.CrossMatchResult(
             self.stars[stars_found], self.stars[stars_not_found], stars_recall, stars_catalog,
             self.galaxies[galaxies_found], self.galaxies[galaxies_not_found], galaxies_recall, galaxies_catalog,
             misids
         )
 
 
-def intersect(a: CrossValidation.CrossValidationResult, b):
+def intersect(a: CrossMatching.CrossMatchResult, b):
     """
     Intersect two CrossValidationResult
     :return:
