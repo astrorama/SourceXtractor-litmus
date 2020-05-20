@@ -92,10 +92,14 @@ def test_elongation(coadded_catalog, coadded_frame_cross, sim11_r_reference, sim
     ref_hits = sim11_r_reference[sim11_r_cross.all_catalog[ref_intersect]]
 
     not_flagged = np.logical_and(catalog_hits['source_flags'] == 0, ref_hits['FLAGS'] == 0)
-
     assert not_flagged.sum() > 0
-    assert np.isclose(catalog_hits['elongation'][not_flagged], ref_hits['ELONGATION'][not_flagged]).all()
-    assert np.isclose(catalog_hits['ellipticity'][not_flagged], ref_hits['ELLIPTICITY'][not_flagged], rtol=1e-4).all()
+
+    avg_ratio = np.average(
+        catalog_hits['elongation'][not_flagged] / ref_hits['ELONGATION'][not_flagged],
+        weights=ref_hits['SNR_WIN'][not_flagged]
+    )
+
+    assert np.isclose(avg_ratio, 1., atol=1e-3)
 
 
 @pytest.mark.report
