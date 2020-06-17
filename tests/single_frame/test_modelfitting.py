@@ -30,8 +30,6 @@ def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tol
 
     catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
-    catalog['model_flux_r_err'][catalog['model_flux_r_err'] >= 99.] = np.nan
-    catalog['model_mag_r_err'][catalog['model_mag_r_err'] >= 99.] = np.nan
     catalog.meta['engine'] = request.param
     return SimpleNamespace(run=run, catalog=catalog[bright_filter])
 

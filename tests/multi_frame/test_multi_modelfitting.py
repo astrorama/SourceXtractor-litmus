@@ -35,10 +35,6 @@ def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tol
 
     catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
-    catalog['model_flux_r_err'][catalog['model_flux_r_err'] >= 99.] = np.nan
-    catalog['model_mag_r_err'][catalog['model_mag_r_err'] >= 99.] = np.nan
-    catalog['model_flux_g_err'][catalog['model_flux_g_err'] >= 99.] = np.nan
-    catalog['model_mag_g_err'][catalog['model_mag_g_err'] >= 99.] = np.nan
     catalog.meta['engine'] = request.param
     assert len(catalog)
     return SimpleNamespace(run=run, catalog=catalog[bright_filter])
@@ -89,8 +85,8 @@ def test_magnitude(modelfitting_catalog, r_cross, g_cross):
     r_diff = r_mag[r_not_flagged] - r_cross.all_magnitudes[r_not_flagged]
     g_diff = g_mag[g_not_flagged] - g_cross.all_magnitudes[g_not_flagged]
 
-    assert np.mean(r_diff) <= 0.14
-    assert np.mean(g_diff) <= 0.14
+    assert np.nanmean(r_diff) <= 0.14
+    assert np.nanmean(g_diff) <= 0.14
 
 
 @pytest.mark.report

@@ -39,8 +39,6 @@ def coadded_run(sourcextractor, datafiles, module_output_area, tolerances):
 
     catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
-    for nan_col in ['isophotal_mag', 'auto_mag', 'isophotal_mag_err', 'auto_mag_err']:
-        catalog[nan_col][catalog[nan_col] >= 99.] = np.nan
     return SimpleNamespace(run=run, catalog=catalog[bright_filter])
 
 
