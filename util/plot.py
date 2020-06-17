@@ -30,7 +30,10 @@ _flag_style = {
     stuff.SourceFlags.SATURATED: ('orange', '+'),
     stuff.SourceFlags.BOUNDARY: ('pink', '3'),
     stuff.SourceFlags.NEIGHBORS: ('cyan', '4'),
-    stuff.SourceFlags.OUTSIDE: ('white', 'x')
+    stuff.SourceFlags.OUTSIDE: ('white', 'x'),
+    stuff.SourceFlags.PARTIAL_FIT: ('DarkViolet', 'o'),
+    stuff.SourceFlags.INSUFFICIENT_DATA: ('DarkRed', 'P'),
+    stuff.SourceFlags.ERROR: ('crimsom', 'X')
 }
 # SExtractor2 flag style. We define them here instead of relying on the auto-style,
 # so they stays consistent between runs, images, etc.

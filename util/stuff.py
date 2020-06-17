@@ -22,6 +22,9 @@ class SourceFlags(IntFlag):
     BOUNDARY = 1 << 3  # The object is truncates (to close to an image boundary).
     NEIGHBORS = 1 << 4  # The object has neighbors, bright and close enough
     OUTSIDE = 1 << 5  # The object is completely outside of the measurement frame
+    PARTIAL_FIT = 1 << 6  # Some/all of the model parameters could not be fitted
+    INSUFFICIENT_DATA = 1 << 7  # There are not enough good pixels to fit the parameters
+    ERROR = 1 << 10  # Error flag: something bad happened during the measurement, model fitting, etc.
 
 
 class Sex2SourceFlags(IntFlag):
