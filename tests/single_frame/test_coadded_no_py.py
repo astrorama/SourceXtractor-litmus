@@ -25,7 +25,9 @@ def coadded_run(sourcextractor, datafiles, module_output_area, tolerances):
                   'IsophotalFlux',
                   'ShapeParameters',
                   'SourceFlags',
-                  'NDetectedPixels']
+                  'NDetectedPixels',
+                  'GrowthCurve',
+                  'FluxRadius']
 
     run = sourcextractor(
         output_properties=','.join(properties),
@@ -33,7 +35,9 @@ def coadded_run(sourcextractor, datafiles, module_output_area, tolerances):
         weight_image=datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz',
         weight_type='weight',
         weight_absolute=True,
-        psf_filename=datafiles / 'sim11' / 'psf' / 'sim11_r.psf'
+        psf_filename=datafiles / 'sim11' / 'psf' / 'sim11_r.psf',
+        flux_growth_samples=64,
+        flux_fraction=0.5
     )
     assert run.exit_code == 0
 
@@ -95,6 +99,46 @@ def test_elongation(coadded_catalog, coadded_frame_cross, sim11_r_reference, sim
     )
 
     assert np.isclose(avg_ratio, 1., atol=1e-3)
+
+
+def test_growth_curve(coadded_catalog, coadded_frame_cross, sim11_r_reference, sim11_r_cross):
+    """
+    Cross-validate the growth curve
+    """
+    catalog_intersect, ref_intersect = intersect(coadded_frame_cross, sim11_r_cross)
+    catalog_hits = coadded_catalog[coadded_frame_cross.all_catalog[catalog_intersect]]
+    ref_hits = sim11_r_reference[sim11_r_cross.all_catalog[ref_intersect]]
+
+    not_flagged = np.logical_and(catalog_hits['source_flags'] == 0, ref_hits['FLAGS'] == 0)
+    assert not_flagged.sum() > 0
+
+    step_diff = np.average(catalog_hits['flux_growth_step'][not_flagged] - ref_hits['FLUX_GROWTHSTEP'][not_flagged],
+                           weights=ref_hits['SNR_WIN'][not_flagged])
+    assert np.isclose(step_diff, 0., atol=1e-3)
+
+    # Note that SExtractor2 does not apply FLXSCALE, so normalize both curves
+    catalog_normed = catalog_hits['flux_growth'][:, 0, :] / catalog_hits['flux_growth'][:, 0, -1:]
+    ref_normed = ref_hits['FLUX_GROWTH'][:, :] / ref_hits['FLUX_GROWTH'][:, -1:]
+
+    curve_diff = catalog_normed - ref_normed
+
+    assert np.isclose(np.average(curve_diff), 0., atol=1e-2)
+
+
+def test_flux_radius(coadded_catalog):
+    """
+    Use numpy's interpolation functionality to test the flux_radius actually has the right value
+    """
+    not_flagged = coadded_catalog['source_flags'] == 0
+    assert not_flagged.sum() > 0
+
+    for row in coadded_catalog[not_flagged]:
+        step_size = row['flux_growth_step']
+        if row['flux_growth'][0, -1] > 0:
+            steps = np.arange(1, 65) * step_size
+            normed = row['flux_growth'][0] / row['flux_growth'][0, -1]
+            val = np.interp(row['flux_radius'], steps, normed)
+            assert np.isclose(val, 0.5, 1e-2)
 
 
 @pytest.mark.report
