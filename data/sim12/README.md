@@ -8,13 +8,13 @@ run sextractor 2: `default.param`, `default.sex` and `default.conv`
 ## Coadd per band
 
 ```bash
-swarp sim12_r_0*.fits -SUBTRACT_BACK Y -COMBINE_TYPE AVERAGE
+swarp sim12_r_0?.fits -SUBTRACT_BACK Y -COMBINE_TYPE AVERAGE
 ```
 
 ## Full coadd
 
 ```bash
-swarp sim12_?.fits -COMBINE_TYPE CHI-MEAN -WEIGHT_TYPE MAP_WEIGHT -RESCALE_WEIGHTS N -RESAMPLE N
+swarp sim12_?_0?.fits -SUBTRACT_BACK Y -COMBINE_TYPE AVERAGE
 ```
 
 ## Generate reference catalogs
