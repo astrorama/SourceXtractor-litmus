@@ -14,7 +14,7 @@ def test_background_cellsize(sourcextractor, datafiles, module_output_area, cell
 
     run = sourcextractor(
         output_properties='SourceIDs,PixelCentroid,WorldCentroid',
-        detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
+        detection_image=datafiles / 'sim12' / 'img' / 'sim12_r_01.fits.gz',
         background_cell_size=cell_size,
         log_file='sourcextractor_{}.log'.format(cell_size)
     )
@@ -33,7 +33,7 @@ def test_background_bad_cellsize(sourcextractor, datafiles, module_output_area, 
 
     run = sourcextractor(
         output_properties='SourceIDs,PixelCentroid,WorldCentroid',
-        detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
+        detection_image=datafiles / 'sim12' / 'img' / 'sim12_r_01.fits.gz',
         background_cell_size=cell_size,
         log_file='sourcextractor_{}.log'.format(cell_size)
     )
@@ -54,7 +54,7 @@ def test_background_smoothing_box(sourcextractor, datafiles, module_output_area,
 
     run = sourcextractor(
         output_properties='SourceIDs,PixelCentroid,WorldCentroid',
-        detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
+        detection_image=datafiles / 'sim12' / 'img' / 'sim12_r_01.fits.gz',
         background_cell_size=256,
         smoothing_box_size=smoothing_box,
         log_file='sourcextractor_{}.log'.format(smoothing_box)
@@ -74,7 +74,7 @@ def test_background_bad_smoothing_box(sourcextractor, datafiles, module_output_a
 
     run = sourcextractor(
         output_properties='SourceIDs,PixelCentroid,WorldCentroid',
-        detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
+        detection_image=datafiles / 'sim12' / 'img' / 'sim12_r_01.fits.gz',
         smoothing_box_size=smoothing_box,
         log_file='sourcextractor_{}.log'.format(smoothing_box)
     )

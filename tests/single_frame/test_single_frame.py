@@ -40,9 +40,9 @@ def single_frame_run(sourcextractor, datafiles, module_output_area, tolerances):
 
     run = sourcextractor(
         output_properties=','.join(properties),
-        detection_image=datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
-        psf_filename=datafiles / 'sim11' / 'psf' / 'sim11_r_01.psf',
-        python_config_file=datafiles / 'sim11' / 'sim11_single.py',
+        detection_image=datafiles / 'sim12' / 'img' / 'sim12_r_01.fits.gz',
+        psf_filename=datafiles / 'sim12' / 'psf' / 'sim12_r_01.psf',
+        python_config_file=datafiles / 'sim12' / 'sim12_single.py',
         flux_growth_samples=64,
         flux_fraction=0.5,
     )
@@ -59,18 +59,18 @@ def single_frame_catalog(single_frame_run):
 
 
 @pytest.fixture(scope='module')
-def single_frame_cross(single_frame_run, sim11_r_simulation, datafiles, tolerances):
-    detection_image = datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz'
-    cross = CrossMatching(detection_image, sim11_r_simulation, max_dist=tolerances['distance'])
+def single_frame_cross(single_frame_run, sim12_r_simulation, datafiles, tolerances):
+    detection_image = datafiles / 'sim12' / 'img' / 'sim12_r_01.fits.gz'
+    cross = CrossMatching(detection_image, sim12_r_simulation, max_dist=tolerances['distance'])
     return cross(single_frame_run.catalog['pixel_centroid_x'], single_frame_run.catalog['pixel_centroid_y'])
 
 
-def test_detection(single_frame_cross, sim11_r_01_cross):
+def test_detection(single_frame_cross, sim12_r_01_cross):
     """
     Test that the number of results matches the ref, and that they are reasonably close
     """
-    assert len(single_frame_cross.stars_found) >= len(sim11_r_01_cross.stars_found)
-    assert len(single_frame_cross.galaxies_found) >= len(sim11_r_01_cross.galaxies_found)
+    assert len(single_frame_cross.stars_found) >= len(sim12_r_01_cross.stars_found)
+    assert len(single_frame_cross.galaxies_found) >= len(sim12_r_01_cross.galaxies_found)
 
 
 @pytest.mark.parametrize(
@@ -82,15 +82,15 @@ def test_detection(single_frame_cross, sim11_r_01_cross):
         [['aperture_flux:0:2', 'aperture_flux_err:0:2'], ['FLUX_APER:0', 'FLUXERR_APER:2']],
     ]
 )
-def test_flux(single_frame_catalog, single_frame_cross, sim11_r_01_reference, sim11_r_01_cross,
+def test_flux(single_frame_catalog, single_frame_cross, sim12_r_01_reference, sim12_r_01_cross,
               flux_column, reference_flux_column):
     """
     Cross-validate the flux columns.
     We use only the hits, and ignore the detections that are a miss.
     """
-    catalog_intersect, ref_intersect = intersect(single_frame_cross, sim11_r_01_cross)
+    catalog_intersect, ref_intersect = intersect(single_frame_cross, sim12_r_01_cross)
     catalog_hits = single_frame_catalog[single_frame_cross.all_catalog[catalog_intersect]]
-    ref_hits = sim11_r_01_reference[sim11_r_01_cross.all_catalog[ref_intersect]]
+    ref_hits = sim12_r_01_reference[sim12_r_01_cross.all_catalog[ref_intersect]]
 
     assert len(catalog_hits) == len(ref_hits)
 
@@ -98,7 +98,7 @@ def test_flux(single_frame_catalog, single_frame_cross, sim11_r_01_reference, si
     catalog_flux_err = get_column(catalog_hits, flux_column[1])
     ref_flux = get_column(ref_hits, reference_flux_column[0])
     ref_flux_err = get_column(ref_hits, reference_flux_column[1])
-    real_flux = sim11_r_01_cross.all_fluxes[ref_intersect]
+    real_flux = sim12_r_01_cross.all_fluxes[ref_intersect]
 
     catalog_dist = np.sqrt((catalog_flux - real_flux) ** 2 / catalog_flux_err ** 2)
     ref_dist = np.sqrt((ref_flux - real_flux) ** 2 / ref_flux_err ** 2)
@@ -106,13 +106,13 @@ def test_flux(single_frame_catalog, single_frame_cross, sim11_r_01_reference, si
     assert np.median(catalog_dist - ref_dist) <= 0.
 
 
-def test_elongation(single_frame_catalog, single_frame_cross, sim11_r_01_reference, sim11_r_01_cross):
+def test_elongation(single_frame_catalog, single_frame_cross, sim12_r_01_reference, sim12_r_01_cross):
     """
     Cross-validate the elongation column.
     """
-    catalog_intersect, ref_intersect = intersect(single_frame_cross, sim11_r_01_cross)
+    catalog_intersect, ref_intersect = intersect(single_frame_cross, sim12_r_01_cross)
     catalog_hits = single_frame_catalog[single_frame_cross.all_catalog[catalog_intersect]]
-    ref_hits = sim11_r_01_reference[sim11_r_01_cross.all_catalog[ref_intersect]]
+    ref_hits = sim12_r_01_reference[sim12_r_01_cross.all_catalog[ref_intersect]]
 
     not_flagged = np.logical_and(catalog_hits['source_flags'] == 0, ref_hits['FLAGS'] == 0)
     assert not_flagged.sum() > 0
@@ -125,13 +125,13 @@ def test_elongation(single_frame_catalog, single_frame_cross, sim11_r_01_referen
     assert np.isclose(avg_ratio, 1., atol=1e-3)
 
 
-def test_growth_curve(single_frame_catalog, single_frame_cross, sim11_r_01_reference, sim11_r_01_cross):
+def test_growth_curve(single_frame_catalog, single_frame_cross, sim12_r_01_reference, sim12_r_01_cross):
     """
     Cross-validate the growth curve
     """
-    catalog_intersect, ref_intersect = intersect(single_frame_cross, sim11_r_01_cross)
+    catalog_intersect, ref_intersect = intersect(single_frame_cross, sim12_r_01_cross)
     catalog_hits = single_frame_catalog[single_frame_cross.all_catalog[catalog_intersect]]
-    ref_hits = sim11_r_01_reference[sim11_r_01_cross.all_catalog[ref_intersect]]
+    ref_hits = sim12_r_01_reference[sim12_r_01_cross.all_catalog[ref_intersect]]
 
     not_flagged = np.logical_and(catalog_hits['source_flags'] == 0, ref_hits['FLAGS'] == 0)
     assert not_flagged.sum() > 0
@@ -163,11 +163,11 @@ def test_flux_radius(single_frame_catalog):
 
 
 @pytest.mark.report
-def test_generate_report(single_frame_run, sim11_r_01_reference, sim11_r_simulation, datafiles, module_output_area):
+def test_generate_report(single_frame_run, sim12_r_01_reference, sim12_r_simulation, datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     plot.generate_report(
-        module_output_area / 'report.pdf', sim11_r_simulation, datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz',
-        single_frame_run.catalog, sim11_r_01_reference, run=single_frame_run.run
+        module_output_area / 'report.pdf', sim12_r_simulation, datafiles / 'sim12' / 'img' / 'sim12_r_01.fits.gz',
+        single_frame_run.catalog, sim12_r_01_reference, run=single_frame_run.run
     )
