@@ -33,6 +33,6 @@ def test_missing_file_in_python(sourcextractor_py, datafiles):
 
     with raises(Exception):
         sourcextractor_py.load_fits_images(
-            [datafiles / 'sim11' / 'img' / 'sim11_r_01.fits.gz'],
-            psf_filename=[datafiles / 'sim11' / 'psf' / 'ouch.psf'],
+            [datafiles / 'sim12' / 'img' / 'sim12_r_01.fits.gz'],
+            psf_filename=[datafiles / 'sim12' / 'psf' / 'ouch.psf'],
         )

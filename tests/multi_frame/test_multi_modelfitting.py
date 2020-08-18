@@ -24,11 +24,11 @@ def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tol
     run = sourcextractor(
         'engine={}'.format(request.param),
         output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting,SourceFlags',
-        detection_image=datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
-        weight_image=datafiles / 'sim11' / 'img' / 'sim11.weight.fits.gz',
+        detection_image=datafiles / 'sim12' / 'img' / 'sim12.fits.gz',
+        weight_image=datafiles / 'sim12' / 'img' / 'sim12.weight.fits.gz',
         weight_type='weight',
         weight_absolute=True,
-        python_config_file=datafiles / 'sim11' / 'sim11_multi_modelfitting.py',
+        python_config_file=datafiles / 'sim12' / 'sim12_multi_modelfitting.py',
         thread_count=4
     )
     assert run.exit_code == 0
@@ -46,22 +46,22 @@ def modelfitting_catalog(modelfitting_run):
 
 
 @pytest.fixture(scope='module')
-def r_cross(modelfitting_catalog, sim11_r_simulation, datafiles, tolerances):
+def r_cross(modelfitting_catalog, sim12_r_simulation, datafiles, tolerances):
     image = Image(
-        datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
-        weight_image=datafiles / 'sim11' / 'img' / 'sim11.weight.fits.gz'
+        datafiles / 'sim12' / 'img' / 'sim12.fits.gz',
+        weight_image=datafiles / 'sim12' / 'img' / 'sim12.weight.fits.gz'
     )
-    cross = CrossMatching(image, sim11_r_simulation, max_dist=tolerances['distance'])
+    cross = CrossMatching(image, sim12_r_simulation, max_dist=tolerances['distance'])
     return cross(modelfitting_catalog['pixel_centroid_x'], modelfitting_catalog['pixel_centroid_y'])
 
 
 @pytest.fixture(scope='module')
-def g_cross(modelfitting_catalog, sim11_g_simulation, datafiles, tolerances):
+def g_cross(modelfitting_catalog, sim12_g_simulation, datafiles, tolerances):
     image = Image(
-        datafiles / 'sim11' / 'img' / 'sim11.fits.gz',
-        weight_image=datafiles / 'sim11' / 'img' / 'sim11.weight.fits.gz'
+        datafiles / 'sim12' / 'img' / 'sim12.fits.gz',
+        weight_image=datafiles / 'sim12' / 'img' / 'sim12.weight.fits.gz'
     )
-    cross = CrossMatching(image, sim11_g_simulation, max_dist=tolerances['distance'])
+    cross = CrossMatching(image, sim12_g_simulation, max_dist=tolerances['distance'])
     return cross(modelfitting_catalog['pixel_centroid_x'], modelfitting_catalog['pixel_centroid_y'])
 
 
@@ -86,13 +86,13 @@ def test_magnitude(modelfitting_catalog, r_cross, g_cross):
     g_diff = g_mag[g_not_flagged] - g_cross.all_magnitudes[g_not_flagged]
 
     assert np.nanmean(r_diff) <= 0.14
-    assert np.nanmean(g_diff) <= 0.14
+    assert np.nanmean(g_diff) <= 0.16
 
 
 @pytest.mark.report
 @pytest.mark.slow
-def test_generate_report(modelfitting_run, sim11_r_simulation, sim11_g_simulation,
-                         sim11_r_reference, sim11_g_reference,
+def test_generate_report(modelfitting_run, sim12_r_simulation, sim12_g_simulation,
+                         sim12_r_reference, sim12_g_reference,
                          datafiles, module_output_area):
     """
     Not quite a test. Generate a PDF report to allow for better insights.
@@ -104,37 +104,37 @@ def test_generate_report(modelfitting_run, sim11_r_simulation, sim11_g_simulatio
     not_flagged = modelfitting_catalog['fmf_flags'] == 0
 
     image = plot.Image(
-        datafiles / 'sim11' / 'img' / 'sim11.fits.gz', weight_image=datafiles / 'sim11' / 'img' / 'sim11.weight.fits.gz'
+        datafiles / 'sim12' / 'img' / 'sim12.fits.gz', weight_image=datafiles / 'sim12' / 'img' / 'sim12.weight.fits.gz'
     )
     image_r = plot.Image(
-        datafiles / 'sim11' / 'img' / 'sim11_r.fits.gz',
-        datafiles / 'sim11' / 'img' / 'sim11_r.weight.fits.gz'
+        datafiles / 'sim12' / 'img' / 'sim12_r.fits.gz',
+        datafiles / 'sim12' / 'img' / 'sim12_r.weight.fits.gz'
     )
     image_g = plot.Image(
-        datafiles / 'sim11' / 'img' / 'sim11_g.fits.gz',
-        weight_image=datafiles / 'sim11' / 'img' / 'sim11_g.weight.fits.gz'
+        datafiles / 'sim12' / 'img' / 'sim12_g.fits.gz',
+        weight_image=datafiles / 'sim12' / 'img' / 'sim12_g.weight.fits.gz'
     )
     with plot.Report(module_output_area / 'report.pdf') as report:
-        loc_map = plot.Location(image, sim11_r_simulation)
+        loc_map = plot.Location(image, sim12_r_simulation)
         loc_map.add('SourceXtractor++', modelfitting_catalog[not_flagged], 'model_x', 'model_y', marker='3')
         report.add(loc_map)
 
-        dist_r = plot.Distances(image_r, sim11_r_simulation)
-        dist_r.add('SExtractor2 (R)', sim11_r_reference, 'XMODEL_IMAGE', 'YMODEL_IMAGE', marker='o')
+        dist_r = plot.Distances(image_r, sim12_r_simulation)
+        dist_r.add('SExtractor2 (R)', sim12_r_reference, 'XMODEL_IMAGE', 'YMODEL_IMAGE', marker='o')
         report.add(dist_r)
 
-        dist_g = plot.Distances(image_g, sim11_g_simulation)
-        dist_g.add('SExtractor2 (G)', sim11_g_reference, 'XMODEL_IMAGE', 'YMODEL_IMAGE', marker='h')
+        dist_g = plot.Distances(image_g, sim12_g_simulation)
+        dist_g.add('SExtractor2 (G)', sim12_g_reference, 'XMODEL_IMAGE', 'YMODEL_IMAGE', marker='h')
         report.add(dist_g)
 
-        dist = plot.Distances(image, sim11_g_simulation)
+        dist = plot.Distances(image, sim12_g_simulation)
         dist.add('SourceXtractor++', modelfitting_catalog[not_flagged], 'model_x', 'model_y', marker='.')
         report.add(dist)
 
-        mag_r = plot.Magnitude('R', sim11_r_simulation)
+        mag_r = plot.Magnitude('R', sim12_r_simulation)
         mag_r.add(
             'SExtractor2',
-            sim11_r_reference, 'ALPHA_SKY', 'DELTA_SKY', 'MAG_MODEL', 'MAGERR_MODEL',
+            sim12_r_reference, 'ALPHA_SKY', 'DELTA_SKY', 'MAG_MODEL', 'MAGERR_MODEL',
             marker='o'
         )
         mag_r.add(
@@ -145,10 +145,10 @@ def test_generate_report(modelfitting_run, sim11_r_simulation, sim11_g_simulatio
         )
         report.add(mag_r)
 
-        mag_g = plot.Magnitude('G', sim11_g_simulation)
+        mag_g = plot.Magnitude('G', sim12_g_simulation)
         mag_g.add(
             'SExtractor2',
-            sim11_r_reference, 'ALPHA_SKY', 'DELTA_SKY', 'MAG_MODEL', 'MAGERR_MODEL',
+            sim12_r_reference, 'ALPHA_SKY', 'DELTA_SKY', 'MAG_MODEL', 'MAGERR_MODEL',
             marker='o'
         )
         mag_g.add(
