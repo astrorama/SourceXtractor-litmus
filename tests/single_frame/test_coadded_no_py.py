@@ -122,7 +122,7 @@ def test_growth_curve(coadded_catalog, coadded_frame_cross, sim12_r_reference, s
 
     curve_diff = catalog_normed - ref_normed
 
-    assert np.isclose(np.average(curve_diff), 0., atol=1e-2)
+    assert np.isclose(np.average(curve_diff), 0., atol=1.1e-2)
 
 
 def test_flux_radius(coadded_catalog):

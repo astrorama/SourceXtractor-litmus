@@ -70,6 +70,7 @@ def test_magnitude(modelfitting_catalog, modelfitting_cross, sim12_r_01_referenc
     ref_mag_diff = np.abs(ref_mag - sim12_r_01_cross.all_magnitudes)
 
     assert np.median(catalog_mag_diff) <= np.median(ref_mag_diff) * (1 + tolerances['magnitude'])
+    assert np.std(catalog_mag_diff) <= np.std(ref_mag_diff) * (1 + tolerances['magnitude'])
 
 
 @pytest.mark.report
