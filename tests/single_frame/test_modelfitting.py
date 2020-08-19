@@ -22,6 +22,7 @@ def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tol
 
     run = sourcextractor(
         'engine={}'.format(request.param),
+        grouping_algorithm='MOFFAT',
         output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting',
         detection_image=datafiles / 'sim12' / 'img' / 'sim12_r_01.fits.gz',
         python_config_file=datafiles / 'sim12' / 'sim12_single_modelfitting.py'
@@ -50,8 +51,8 @@ def test_detection(modelfitting_cross, sim12_r_01_cross):
     """
     Test that the number of results matches the ref, and that they are reasonably close
     """
-    assert len(modelfitting_cross.stars_found) >= len(sim12_r_01_cross.stars_found)
-    assert len(modelfitting_cross.galaxies_found) >= len(sim12_r_01_cross.galaxies_found)
+    assert np.isclose(len(modelfitting_cross.stars_found), len(sim12_r_01_cross.stars_found), rtol=0.05)
+    assert np.isclose(len(modelfitting_cross.galaxies_found), len(sim12_r_01_cross.galaxies_found), rtol=0.05)
 
 
 def test_magnitude(modelfitting_catalog, modelfitting_cross, sim12_r_01_reference, sim12_r_01_cross, tolerances):

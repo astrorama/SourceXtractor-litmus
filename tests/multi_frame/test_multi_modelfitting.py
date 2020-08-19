@@ -23,6 +23,7 @@ def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tol
 
     run = sourcextractor(
         'engine={}'.format(request.param),
+        grouping_algorithm='MOFFAT',
         output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting,SourceFlags',
         detection_image=datafiles / 'sim12' / 'img' / 'sim12.fits.gz',
         weight_image=datafiles / 'sim12' / 'img' / 'sim12.weight.fits.gz',

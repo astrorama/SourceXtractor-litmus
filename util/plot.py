@@ -379,7 +379,7 @@ class Magnitude(Plot):
         """
         Box plot for a better scatter visualization, separate stars and galaxies
         """
-        box_edges = np.histogram_bin_edges(mag, bins=5)
+        box_edges = np.histogram_bin_edges(mag[np.isfinite(mag)], bins=5)
         box_bins = (box_edges[1:] + box_edges[:-1]) / 2
 
         first_ax = self.__box_figs[0].axes[0] if self.__box_figs else None
