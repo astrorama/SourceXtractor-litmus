@@ -66,8 +66,8 @@ def test_magnitude(modelfitting_catalog, modelfitting_cross, sim12_r_01_referenc
     catalog_mag = catalog_hits['model_mag_r']
     ref_mag = ref_hits['MAG_MODEL']
 
-    catalog_mag_diff = catalog_mag - modelfitting_cross.all_magnitudes
-    ref_mag_diff = ref_mag - sim12_r_01_cross.all_magnitudes
+    catalog_mag_diff = np.abs(catalog_mag - modelfitting_cross.all_magnitudes)
+    ref_mag_diff = np.abs(ref_mag - sim12_r_01_cross.all_magnitudes)
 
     assert np.median(catalog_mag_diff) <= np.median(ref_mag_diff) * (1 + tolerances['magnitude'])
 
