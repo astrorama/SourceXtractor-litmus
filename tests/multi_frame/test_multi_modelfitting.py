@@ -23,6 +23,7 @@ def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tol
 
     run = sourcextractor(
         'engine={}'.format(request.param),
+        grouping_algorithm='MOFFAT',
         output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting,SourceFlags',
         detection_image=datafiles / 'sim12' / 'img' / 'sim12.fits.gz',
         weight_image=datafiles / 'sim12' / 'img' / 'sim12.weight.fits.gz',
@@ -82,11 +83,11 @@ def test_magnitude(modelfitting_catalog, r_cross, g_cross):
     r_mag = r_hits['model_mag_r']
     g_mag = g_hits['model_mag_g']
 
-    r_diff = r_mag[r_not_flagged] - r_cross.all_magnitudes[r_not_flagged]
-    g_diff = g_mag[g_not_flagged] - g_cross.all_magnitudes[g_not_flagged]
+    r_diff = np.abs(r_mag[r_not_flagged] - r_cross.all_magnitudes[r_not_flagged])
+    g_diff = np.abs(g_mag[g_not_flagged] - g_cross.all_magnitudes[g_not_flagged])
 
-    assert np.nanmean(r_diff) <= 0.14
-    assert np.nanmean(g_diff) <= 0.16
+    assert np.nanmedian(r_diff) <= 0.1
+    assert np.nanmedian(g_diff) <= 0.1
 
 
 @pytest.mark.report

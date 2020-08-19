@@ -293,20 +293,21 @@ class Magnitude(Plot):
         """
         super(Magnitude, self).__init__()
         self.__simulation = simulation
-        self.__figure = plt.figure(figsize=_page_size)
-        self.__figure.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
+        self.__scatter_fig = plt.figure(figsize=_page_size)
+        self.__scatter_fig.subplots_adjust(left=0.07, right=0.93, hspace=0.0, wspace=0.2)
+        self.__box_figs = []
 
         gridspec = GridSpec(4, 1)
 
         # First plot: computed (Y) vs real (X)
-        self.__ax_mag = self.__figure.add_subplot(gridspec.new_subplotspec((0, 0), 2))
+        self.__ax_mag = self.__scatter_fig.add_subplot(gridspec.new_subplotspec((0, 0), 2))
         self.__ax_mag.set_title(f'Magnitude comparison for {name}')
         self.__ax_mag.set_ylabel('Measured value')
         self.__ax_mag.grid(True, linestyle=':')
 
         # Second plot: delta between computed and real
         self.__ax_mag.spines['bottom'].set_linestyle('--')
-        self.__ax_delta = self.__figure.add_subplot(gridspec.new_subplotspec((2, 0), 1), sharex=self.__ax_mag)
+        self.__ax_delta = self.__scatter_fig.add_subplot(gridspec.new_subplotspec((2, 0), 1), sharex=self.__ax_mag)
         self.__ax_delta.set_facecolor('whitesmoke')
         self.__ax_delta.spines['top'].set_visible(False)
         self.__ax_delta.set_ylabel('$\\Delta$')
@@ -315,7 +316,7 @@ class Magnitude(Plot):
         self.__ax_delta.set_ylim(-1.1, 1.1)
 
         # Third plot: computed error
-        self.__ax_err = self.__figure.add_subplot(gridspec.new_subplotspec((3, 0), 1), sharex=self.__ax_mag)
+        self.__ax_err = self.__scatter_fig.add_subplot(gridspec.new_subplotspec((3, 0), 1), sharex=self.__ax_mag)
         self.__ax_err.set_facecolor('oldlace')
         self.__ax_err.set_ylabel('Measured error')
         self.__ax_err.set_xlabel('Real magnitude')
@@ -357,12 +358,48 @@ class Magnitude(Plot):
         self.__ax_delta.scatter(delta_above, np.ones(delta_above.shape), marker='^', c=delta_col.get_facecolor())
         self.__ax_delta.scatter(delta_below, -np.ones(delta_below.shape), marker='v', c=delta_col.get_facecolor())
 
+        # Box plot
+        self.box_plots(closest, delta_mag, label, mag, mag_col)
+
+    def box_plot(self, ax, delta_mag, mag, mag_col, box_edges, box_bins):
+        """
+        Single box plot
+        """
+        data_bins = np.digitize(mag, bins=box_edges)
+        data_per_bin = []
+        for b in np.arange(1, 1 + len(box_bins)):
+            data_per_bin.append(delta_mag[data_bins == b])
+        ax.boxplot(data_per_bin, labels=[f'{b:.2f} ({len(d)})' for b, d in zip(box_bins,data_per_bin)])
+        ax.axhline(0., linestyle='--', color='r')
+        ax.set_xlabel(mag_col)
+        ax.set_ylabel('$\Delta$ Mag')
+        ax.grid(True, linestyle=':')
+
+    def box_plots(self, closest, delta_mag, label, mag, mag_col):
+        """
+        Box plot for a better scatter visualization, separate stars and galaxies
+        """
+        box_edges = np.histogram_bin_edges(mag[np.isfinite(mag)], bins=5)
+        box_bins = (box_edges[1:] + box_edges[:-1]) / 2
+
+        first_ax = self.__box_figs[0].axes[0] if self.__box_figs else None
+
+        box_fig = plt.figure(figsize=_page_size)
+        star_ax = box_fig.add_subplot(2, 1, 1, sharey=first_ax)
+        star_ax.set_title(f'{label} (Stars)')
+        self.box_plot(star_ax, delta_mag[closest.is_star], mag[closest.is_star], mag_col, box_edges, box_bins)
+        galaxy_ax = box_fig.add_subplot(2, 1, 2, sharey=star_ax)
+        galaxy_ax.set_title(f'{label} (Galaxies)')
+        self.box_plot(galaxy_ax, delta_mag[~closest.is_star], mag[~closest.is_star], mag_col, box_edges, box_bins)
+        box_fig.set_tight_layout(True)
+        self.__box_figs.append(box_fig)
+
     def get_figures(self):
         """
         :return: The list of generated figures
         """
         self.__ax_mag.legend()
-        return [self.__figure]
+        return [self.__scatter_fig] + self.__box_figs
 
 
 class Scatter(Plot):

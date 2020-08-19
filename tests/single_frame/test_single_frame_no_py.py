@@ -65,8 +65,8 @@ def test_detection(single_frame_cross, sim12_r_01_cross):
     """
     Test that the number of results matches the ref, and that they are reasonably close
     """
-    assert len(single_frame_cross.stars_found) >= len(sim12_r_01_cross.stars_found)
-    assert len(single_frame_cross.galaxies_found) >= len(sim12_r_01_cross.galaxies_found)
+    assert np.isclose(len(single_frame_cross.stars_found), len(sim12_r_01_cross.stars_found), rtol=0.05)
+    assert np.isclose(len(single_frame_cross.galaxies_found), len(sim12_r_01_cross.galaxies_found), rtol=0.05)
 
 
 @pytest.mark.parametrize(
