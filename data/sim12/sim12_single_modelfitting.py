@@ -31,6 +31,8 @@ rad = FreeParameter(lambda o: o.get_radius(), Range(lambda v, o: (.01 * v, 100 *
 mag = DependentParameter(lambda f: -2.5 * np.log10(f) + MAG_ZEROPOINT, flux)
 sersic = FreeParameter(2.0, Range((1.0, 7.0), RangeType.LINEAR))
 
+add_prior(flux, lambda o: o.get_iso_flux(), lambda o: 0.5 * o.get_iso_flux())
+
 add_model(measurement_group, SersicModel(pixel_x, pixel_y, flux, rad, ratio, angle, sersic))
 
 add_output_column('model_x', pixel_x)
