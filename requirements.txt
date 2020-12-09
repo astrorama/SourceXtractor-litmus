@@ -7,3 +7,4 @@ numpy
 pathlib
 pytest
 scipy
+pytest-html
