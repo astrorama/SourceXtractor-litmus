@@ -15,7 +15,7 @@ engines = ['levmar', 'gsl']
 def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on multiple frames. Overrides the output area per test so
-    SExtractor is only run once for this setup.
+    it is only run once for this setup.
     The output is filtered by signal/noise, and sorted by location, so cross-matching is easier
     """
     module_output_area = module_output_area / request.param

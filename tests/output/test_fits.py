@@ -5,7 +5,7 @@ from astropy.io import fits
 
 def test_fits_output_catalog_filename(sourcextractor, datafiles):
     """
-    Run SExtractor asking for FITS output on a file
+    Run SourceXtractor asking for FITS output on a file
     """
     single_source_fits = datafiles / 'simple' / 'saturated.fits.gz'
     assert os.path.exists(single_source_fits)

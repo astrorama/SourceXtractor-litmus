@@ -822,12 +822,13 @@ class RunResult(Plot):
         ax.set_xlabel('Time (in seconds)')
         ax.set_ylabel('Memory (in MiB)')
 
-        ax.plot(ticks, run_result.memory_usage, marker='x', c='black')
-        max_mem_pos = np.argmax(run_result.memory_usage)
-        max_mem = run_result.memory_usage[max_mem_pos]
-        ax.hlines(max_mem, 0, ticks[max_mem_pos], colors=['red'], linestyles=['dashed'])
-        ax.vlines(ticks[max_mem_pos], 0, max_mem, color=['red'], linestyle=['dashed'])
-        ax.text(0, max_mem * 1.01, '{:.2f} MiB'.format(max_mem))
+        if run_result.memory_usage:
+            ax.plot(ticks, run_result.memory_usage, marker='x', c='black')
+            max_mem_pos = np.argmax(run_result.memory_usage)
+            max_mem = run_result.memory_usage[max_mem_pos]
+            ax.hlines(max_mem, 0, ticks[max_mem_pos], colors=['red'], linestyles=['dashed'])
+            ax.vlines(ticks[max_mem_pos], 0, max_mem, color=['red'], linestyle=['dashed'])
+            ax.text(0, max_mem * 1.01, '{:.2f} MiB'.format(max_mem))
 
     def get_figures(self):
         return [self.__figure]

@@ -56,7 +56,7 @@ def sourcextractor_defaults(test_configuration, datafiles):
     return cfg
 
 
-class SExtractorxx(object):
+class SourceXtractor(object):
     """
     Wraps Executable so the default configuration file and additional parameters
     can be passed via a configuration file.
@@ -120,12 +120,12 @@ class SExtractorxx(object):
 @pytest.fixture(scope='module')
 def sourcextractor(request, test_configuration, sourcextractor_defaults, module_output_area):
     """
-    Fixture for the SExtractor executable
+    Fixture for the SourceXtractor executable
     """
     exe = Executable(os.path.expandvars(test_configuration.get('sourcextractor', 'binary')))
 
     test_output_area = module_output_area / request.node.name
-    return SExtractorxx(
+    return SourceXtractor(
         exe, os.path.expandvars(test_configuration.get('sourcextractor', 'pythonpath')),
         test_output_area,
         sourcextractor_defaults
