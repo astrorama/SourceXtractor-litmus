@@ -372,7 +372,7 @@ class Magnitude(Plot):
         ax.boxplot(data_per_bin, labels=[f'{b:.2f} ({len(d)})' for b, d in zip(box_bins,data_per_bin)])
         ax.axhline(0., linestyle='--', color='r')
         ax.set_xlabel(mag_col)
-        ax.set_ylabel('$\Delta$ Mag')
+        ax.set_ylabel('$\\Delta$ Mag')
         ax.grid(True, linestyle=':')
 
     def box_plots(self, closest, delta_mag, label, mag, mag_col):
@@ -515,7 +515,7 @@ class Flags(Plot):
         for flag in flag_enum:
             if int(flag) == 0:
                 continue
-            flag_filter = (get_column(catalog, flag_col) & int(flag)).astype(np.bool)
+            flag_filter = (get_column(catalog, flag_col) & int(flag)).astype(bool)
             flag_color, flag_marker = flag_style[flag]
             if flag_filter.any():
                 ax.scatter(

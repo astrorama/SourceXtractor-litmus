@@ -57,7 +57,7 @@ def test_boundary(sourcextractor, datafiles):
 
     assert len(catalog) == 3
     assert np.sum(
-        (catalog['source_flags'] & int(stuff.SourceFlags.BOUNDARY)).astype(np.bool)) == 2
+        (catalog['source_flags'] & int(stuff.SourceFlags.BOUNDARY)).astype(bool)) == 2
 
 
 def test_blended(sourcextractor, datafiles):
@@ -78,4 +78,4 @@ def test_blended(sourcextractor, datafiles):
 
     assert len(catalog) == 2
     assert np.sum(
-        (catalog['source_flags'] & int(stuff.SourceFlags.BLENDED)).astype(np.bool)) == 2
+        (catalog['source_flags'] & int(stuff.SourceFlags.BLENDED)).astype(bool)) == 2
