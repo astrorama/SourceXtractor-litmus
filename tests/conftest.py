@@ -10,6 +10,7 @@ from util.bin import Executable
 
 logger = logging.getLogger(__name__)
 
+
 @pytest.fixture(scope='session')
 def test_configuration(request):
     config = ConfigParser()
@@ -102,8 +103,12 @@ class SourceXtractor(object):
             cfg_file = self.__output_dir / 'sourcextractor.config'
             with open(cfg_file, 'w') as cfg_fd:
                 for k, v in cfg_args.items():
-                    if v is not None:
-                        print(f'{k.replace("_", "-")}={v}', file=cfg_fd)
+                    k = k.replace("_", "-")
+                    if isinstance(v, list):
+                        for sv in v:
+                            print(f'{k}={sv}', file=cfg_fd)
+                    elif v is not None:
+                        print(f'{k}={v}', file=cfg_fd)
             cmd_args.extend(['--config-file', cfg_file])
 
         self.__output_catalog = cfg_args.get('output_catalog_filename', None)
