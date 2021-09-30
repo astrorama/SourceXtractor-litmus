@@ -1,3 +1,4 @@
+import itertools
 from types import SimpleNamespace
 
 import numpy as np
@@ -9,20 +10,25 @@ from util.image import Image
 from util.matching import CrossMatching
 
 engines = ['levmar', 'gsl']
+iterative = [False, True]
+configurations = list(itertools.product(engines, iterative))
+ids = [f'{e}_{"iterative" if i else "classic"}' for e, i in configurations]
 
 
-@pytest.fixture(scope='module', params=engines)
+@pytest.fixture(scope='module', params=configurations, ids=ids)
 def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on multiple frames. Overrides the output area per test so
     it is only run once for this setup.
     The output is filtered by signal/noise, and sorted by location, so cross-matching is easier
     """
-    module_output_area = module_output_area / request.param
+    module_output_area = module_output_area / request.param[0]
+    module_output_area /= 'iterative' if request.param[1] else 'classic'
+
     sourcextractor.set_output_directory(module_output_area)
 
     run = sourcextractor(
-        'engine={}'.format(request.param),
+        f'engine={request.param[0]}', f'iterative={request.param[1]}',
         grouping_algorithm='MOFFAT',
         output_properties='SourceIDs,PixelCentroid,WorldCentroid,IsophotalFlux,FlexibleModelFitting,SourceFlags',
         detection_image=datafiles / 'sim12' / 'img' / 'sim12.fits.gz',
@@ -36,7 +42,7 @@ def modelfitting_run(request, sourcextractor, datafiles, module_output_area, tol
 
     catalog = Table.read(sourcextractor.get_output_catalog())
     bright_filter = catalog['isophotal_flux'] / catalog['isophotal_flux_err'] >= tolerances['signal_to_noise']
-    catalog.meta['engine'] = request.param
+    catalog.meta['output_area'] = module_output_area
     assert len(catalog)
     return SimpleNamespace(run=run, catalog=catalog[bright_filter])
 
@@ -99,7 +105,7 @@ def test_generate_report(modelfitting_run, sim12_r_simulation, sim12_g_simulatio
     Not quite a test. Generate a PDF report to allow for better insights.
     """
     modelfitting_catalog = modelfitting_run.catalog
-    module_output_area = module_output_area / modelfitting_catalog.meta['engine']
+    module_output_area = modelfitting_catalog.meta['output_area']
 
     # Filter not fitted sources
     not_flagged = modelfitting_catalog['fmf_flags'] == 0

@@ -2,8 +2,14 @@ from sourcextractor.config import *
 import os
 import numpy as np
 
-args = Arguments(engine="levmar")
+def parse_flag(*args):
+    if not args:
+        return False
+    return args[0].lower() == 'true'
+
+args = Arguments(engine="levmar", iterative=parse_flag)
 set_engine(args.engine)
+use_iterative_fitting(args.iterative)
 
 # To match simulation (26 mag zeropoint, 300 exposure)
 MAG_ZEROPOINT = 32.19
