@@ -4,7 +4,7 @@ enum34
 matplotlib
 memory_profiler
 numpy
-pathlib
+pathlib; python_version < '3.4'
 pytest
 scipy
 pytest-html
