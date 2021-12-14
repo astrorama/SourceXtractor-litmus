@@ -18,14 +18,14 @@ def onnx_run(sourcextractor, datafiles, module_output_area, tolerances):
                       'PixelCentroid',
                       'WorldCentroid',
                       'IsophotalFlux',
-                      'ONNX',
+                      'MLMeasurement',
                       'Vignet']
 
         run = sourcextractor(
             output_properties=','.join(properties),
             detection_image=datafiles / 'sim12' / 'img' / 'sim12_r_01.fits.gz',
             psf_filename=datafiles / 'sim12' / 'psf' / 'sim12_r_01.psf',
-            onnx_model=[datafiles / 'onnx' / 'is_gal.onnx', datafiles / 'onnx' / 'super_resolution_10.onnx'],
+            ml_measurement_model=[datafiles / 'onnx' / 'is_gal.onnx', datafiles / 'onnx' / 'super_resolution_10.onnx'],
             vignet_size=224
         )
         assert run.exit_code == 0
