@@ -103,7 +103,7 @@ class Image(object):
 
         # If we have a weight map, filter out those with weight 0
         if self.__weight is not None:
-            weight_filter = self.weight[pix_y[inside_image].astype(np.int), pix_x[inside_image].astype(np.int)] != 0.
+            weight_filter = self.weight[pix_y[inside_image].astype(int), pix_x[inside_image].astype(int)] != 0.
             inside_image[inside_image] = weight_filter
 
         nmatches = inside_image.sum()

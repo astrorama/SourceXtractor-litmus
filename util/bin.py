@@ -2,7 +2,10 @@ import logging
 import subprocess
 import tempfile
 
-import memory_profiler as mp
+try:
+    import memory_profiler as mp
+except ImportError:
+    mp = None
 import os.path
 
 
@@ -33,7 +36,7 @@ class Executable(object):
         :param exe: Path to the executable
         """
         if not os.path.exists(exe):
-            raise FileNotFoundError(f'SExtractor binary not found in {exe}')
+            raise FileNotFoundError(f'sourcextractor++ binary not found in {exe}')
         self.__exe = exe
 
     def run(self, *args, **kwargs):
@@ -49,7 +52,11 @@ class Executable(object):
         stderr = tempfile.TemporaryFile('w+b')
 
         proc = subprocess.Popen(full_args, stdout=stdout, stderr=stderr, **kwargs)
-        mem = mp.memory_usage(proc=proc, interval=self.INTERVAL, include_children=True)
+        if mp:
+            mem = mp.memory_usage(proc=proc, interval=self.INTERVAL, include_children=True)
+        else:
+            mem = []
+            proc.wait()
         stdout.seek(0)
         stderr.seek(0)
         return ExecutionResult(

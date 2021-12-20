@@ -10,6 +10,7 @@ from util.bin import Executable
 
 logger = logging.getLogger(__name__)
 
+
 @pytest.fixture(scope='session')
 def test_configuration(request):
     config = ConfigParser()
@@ -56,7 +57,7 @@ def sourcextractor_defaults(test_configuration, datafiles):
     return cfg
 
 
-class SExtractorxx(object):
+class SourceXtractor(object):
     """
     Wraps Executable so the default configuration file and additional parameters
     can be passed via a configuration file.
@@ -102,8 +103,12 @@ class SExtractorxx(object):
             cfg_file = self.__output_dir / 'sourcextractor.config'
             with open(cfg_file, 'w') as cfg_fd:
                 for k, v in cfg_args.items():
-                    if v is not None:
-                        print(f'{k.replace("_", "-")}={v}', file=cfg_fd)
+                    k = k.replace("_", "-")
+                    if isinstance(v, list):
+                        for sv in v:
+                            print(f'{k}={sv}', file=cfg_fd)
+                    elif v is not None:
+                        print(f'{k}={v}', file=cfg_fd)
             cmd_args.extend(['--config-file', cfg_file])
 
         self.__output_catalog = cfg_args.get('output_catalog_filename', None)
@@ -120,12 +125,12 @@ class SExtractorxx(object):
 @pytest.fixture(scope='module')
 def sourcextractor(request, test_configuration, sourcextractor_defaults, module_output_area):
     """
-    Fixture for the SExtractor executable
+    Fixture for the SourceXtractor executable
     """
     exe = Executable(os.path.expandvars(test_configuration.get('sourcextractor', 'binary')))
 
     test_output_area = module_output_area / request.node.name
-    return SExtractorxx(
+    return SourceXtractor(
         exe, os.path.expandvars(test_configuration.get('sourcextractor', 'pythonpath')),
         test_output_area,
         sourcextractor_defaults

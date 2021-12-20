@@ -13,8 +13,7 @@ from util.matching import intersect
 def coadded_run(sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on a coadded single frame. Overrides the output area per test so
-    SExtractor is only run once for this setup.
-    The output is filtered by signal/noise.
+    it is only run once for this setup. The output is filtered by signal/noise.
     Note that we pass whe weight also here, as it is used by the isophotal plugin.
     For the others (auto, aperture), it is used the weight configured on the measurement frame
     (so, in the Python config file).

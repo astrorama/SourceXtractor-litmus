@@ -372,7 +372,7 @@ class Magnitude(Plot):
         ax.boxplot(data_per_bin, labels=[f'{b:.2f} ({len(d)})' for b, d in zip(box_bins,data_per_bin)])
         ax.axhline(0., linestyle='--', color='r')
         ax.set_xlabel(mag_col)
-        ax.set_ylabel('$\Delta$ Mag')
+        ax.set_ylabel('$\\Delta$ Mag')
         ax.grid(True, linestyle=':')
 
     def box_plots(self, closest, delta_mag, label, mag, mag_col):
@@ -515,7 +515,7 @@ class Flags(Plot):
         for flag in flag_enum:
             if int(flag) == 0:
                 continue
-            flag_filter = (get_column(catalog, flag_col) & int(flag)).astype(np.bool)
+            flag_filter = (get_column(catalog, flag_col) & int(flag)).astype(bool)
             flag_color, flag_marker = flag_style[flag]
             if flag_filter.any():
                 ax.scatter(
@@ -746,30 +746,26 @@ class Completeness(Plot):
         recalled_stars = crossval.stars_found
         recalled_galaxies = crossval.galaxies_found
 
-        norm = Normalize()
         ax.imshow(self.__image.for_display(), cmap=_img_cmap)
-        ss = ax.scatter(
-            missing_stars.x, missing_stars.y, c=missing_stars.mag, norm=norm, cmap=_mag_cmap,
-            marker='H', label='Stars',  # facecolors='none'
+        ax.scatter(
+            missing_stars.x, missing_stars.y,
+            marker='H', label='Stars', facecolors='none'
         )
-        # ss.set_facecolor('none')
-        gs = ax.scatter(
-            missing_galaxies.x, missing_galaxies.y, c=missing_galaxies.mag, norm=norm, cmap=_mag_cmap,
-            marker='o', label='Galaxies',  # facecolors='none'
+        ax.scatter(
+            missing_galaxies.x, missing_galaxies.y,
+            marker='o', label='Galaxies', facecolors='none'
         )
-        # gs.set_facecolor('none')
 
         # Sprinkle found, just to see nearby identified sources
         ax.scatter(
-            recalled_stars.x, recalled_stars.y, c=recalled_stars.mag, norm=norm, cmap=_mag_cmap,
+            recalled_stars.x, recalled_stars.y,
             marker='1', label='Hit star'
         )
         ax.scatter(
-            recalled_galaxies.x, recalled_galaxies.y, c=recalled_galaxies.mag, norm=norm, cmap=_mag_cmap,
+            recalled_galaxies.x, recalled_galaxies.y,
             marker='2', label='Hit galaxy'
         )
 
-        fig.colorbar(ss, ax=ax)
         ax.legend()
 
     def get_figures(self):
@@ -822,12 +818,13 @@ class RunResult(Plot):
         ax.set_xlabel('Time (in seconds)')
         ax.set_ylabel('Memory (in MiB)')
 
-        ax.plot(ticks, run_result.memory_usage, marker='x', c='black')
-        max_mem_pos = np.argmax(run_result.memory_usage)
-        max_mem = run_result.memory_usage[max_mem_pos]
-        ax.hlines(max_mem, 0, ticks[max_mem_pos], colors=['red'], linestyles=['dashed'])
-        ax.vlines(ticks[max_mem_pos], 0, max_mem, color=['red'], linestyle=['dashed'])
-        ax.text(0, max_mem * 1.01, '{:.2f} MiB'.format(max_mem))
+        if run_result.memory_usage:
+            ax.plot(ticks, run_result.memory_usage, marker='x', c='black')
+            max_mem_pos = np.argmax(run_result.memory_usage)
+            max_mem = run_result.memory_usage[max_mem_pos]
+            ax.hlines(max_mem, 0, ticks[max_mem_pos], colors=['red'], linestyles=['dashed'])
+            ax.vlines(ticks[max_mem_pos], 0, max_mem, color=['red'], linestyle=['dashed'])
+            ax.text(0, max_mem * 1.01, '{:.2f} MiB'.format(max_mem))
 
     def get_figures(self):
         return [self.__figure]

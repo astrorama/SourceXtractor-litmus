@@ -22,8 +22,7 @@ from util.matching import CrossMatching, intersect
 def single_frame_run(sourcextractor, datafiles, module_output_area, tolerances):
     """
     Run sourcextractor on a single frame. Overrides the output area per test so
-    SExtractor is only run once for this setup.
-    The output is filtered by signal/noise.
+    it is only run once for this setup. The output is filtered by signal/noise.
     """
     sourcextractor.set_output_directory(module_output_area)
 

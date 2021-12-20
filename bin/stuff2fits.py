@@ -40,8 +40,8 @@ for k in ['bt_ratio', 'bulge', 'bulge_aspect', 'disk', 'disk_aspect', 'redshift'
 # Flag
 columns.append(
     Column(np.concatenate([
-        np.ones(len(sim.galaxies), dtype=np.int),
-        np.zeros(len(sim.stars), dtype=np.int)
+        np.ones(len(sim.galaxies), dtype=int),
+        np.zeros(len(sim.stars), dtype=int)
     ]), name='galaxy')
 )
 

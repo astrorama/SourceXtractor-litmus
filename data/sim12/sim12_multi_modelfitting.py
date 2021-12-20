@@ -4,8 +4,14 @@ import numpy as np
 from glob import glob
 from sourcextractor.config import *
 
-args = Arguments(engine="levmar")
+def parse_flag(*args):
+    if not args:
+        return False
+    return args[0].lower() == 'true'
+
+args = Arguments(engine="levmar", iterative=parse_flag)
 set_engine(args.engine)
+use_iterative_fitting(args.iterative)
 
 # To match simulation (26 mag zeropoint, 300 exposure)
 MAG_ZEROPOINT = 32.19
@@ -22,8 +28,8 @@ measurement_group = MeasurementGroup(top)
 
 pixel_x, pixel_y = get_pos_parameters()
 ratio = FreeParameter(1, Range((0, 10), RangeType.LINEAR))
-rad = FreeParameter(lambda o: o.get_radius(), Range(lambda v, o: (.01 * v, 100 * v), RangeType.EXPONENTIAL))
-angle = FreeParameter(lambda o: o.get_angle(), Range((-2 * 3.14159, 2 * 3.14159), RangeType.LINEAR))
+rad = FreeParameter(lambda o: o.radius, Range(lambda v, o: (.01 * v, 100 * v), RangeType.EXPONENTIAL))
+angle = FreeParameter(lambda o: o.angle, Range((-2 * 3.14159, 2 * 3.14159), RangeType.LINEAR))
 sersic = FreeParameter(2.0, Range((1.0, 7.0), RangeType.LINEAR))
 
 for band, group in measurement_group:
