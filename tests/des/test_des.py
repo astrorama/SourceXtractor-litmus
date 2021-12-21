@@ -32,34 +32,32 @@ def des_run(request, sourcextractor, datafiles, module_output_area, tolerances):
     module_output_area /= 'iterative' if request.param[1] else 'classic'
 
     sourcextractor.set_output_directory(module_output_area)
-    if False:
-        run = sourcextractor(
-            f'engine={request.param[0]}', f'iterative={request.param[1]}',
-            detection_image=datafiles / 'des' / 'des_compressed.fits.fz[1]',
-            weight_image=datafiles / 'des' / 'des_compressed.fits.fz[2]',
-            weight_absolute=1,
-            weight_type='weight',
-            weight_threshold=1.0e-06,
-            weight_use_symmetry=1,
-            python_config_file=datafiles / 'des' / 'des_modelfitting.py',
-            background_cell_size=256,
-            smoothing_box_size=3,
-            detection_threshold=3.0,
-            background_value=0.0,
-            core_threshold_value=1.158,
-            partition_corethreshold=0,
-            segmentation_filter=datafiles / 'des' / 'gauss_4.0_7x7.conv',
-            detection_image_interpolation=0,
-            detection_minimum_area=6,
-            grouping_algorithm='none',
-            magnitude_zero_point=30.0,
-            model_fitting_iterations=80,
-            model_fitting_engine='levmar',
-            partition_minimum_area=10,
-            output_properties='PixelCentroid,WorldCentroid,SourceIDs,GroupInfo,SourceFlags,AutoPhotometry,FlexibleModelFitting',
-        )
-        assert run.exit_code == 0
-    run = None
+    run = sourcextractor(
+        f'engine={request.param[0]}', f'iterative={request.param[1]}',
+        detection_image=datafiles / 'des' / 'des_compressed.fits.fz[1]',
+        weight_image=datafiles / 'des' / 'des_compressed.fits.fz[2]',
+        weight_absolute=1,
+        weight_type='weight',
+        weight_threshold=1.0e-06,
+        weight_use_symmetry=1,
+        python_config_file=datafiles / 'des' / 'des_modelfitting.py',
+        background_cell_size=256,
+        smoothing_box_size=3,
+        detection_threshold=3.0,
+        background_value=0.0,
+        core_threshold_value=1.158,
+        partition_corethreshold=0,
+        segmentation_filter=datafiles / 'des' / 'gauss_4.0_7x7.conv',
+        detection_image_interpolation=0,
+        detection_minimum_area=6,
+        grouping_algorithm='none',
+        magnitude_zero_point=30.0,
+        model_fitting_iterations=80,
+        model_fitting_engine='levmar',
+        partition_minimum_area=10,
+        output_properties='PixelCentroid,WorldCentroid,SourceIDs,GroupInfo,SourceFlags,AutoPhotometry,FlexibleModelFitting',
+    )
+    assert run.exit_code == 0
     catalog = Table.read(module_output_area / 'output.fits')  # sourcextractor.get_output_catalog())
     bright_filter = catalog['auto_flux'] / catalog['auto_flux_err'] >= tolerances['signal_to_noise']
     catalog.meta['output_area'] = module_output_area
