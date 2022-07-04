@@ -5,6 +5,7 @@ import tempfile
 try:
     import memory_profiler as mp
 except ImportError:
+    logging.warning('Could not import memory_profiler! Memory consumption will not be recorded')
     mp = None
 import os.path
 
