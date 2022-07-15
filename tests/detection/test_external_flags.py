@@ -13,7 +13,7 @@ def test_external_missing_file(sourcextractor, datafiles):
         flag_type_test='OR'
     )
     assert run.exit_code > 0
-    assert 'does not exist' in run.stderr
+    assert 'Can\'t open FITS file' in run.stderr
 
 
 def test_external_bad_operator(sourcextractor, datafiles):

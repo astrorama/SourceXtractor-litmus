@@ -119,7 +119,7 @@ class Location(Plot):
     Display the image, with the detections overlaid.
     """
 
-    def __init__(self, image, simulation):
+    def __init__(self, image, simulation=None):
         """
         Constructor.
         :param image:
@@ -168,7 +168,7 @@ class Distances(Plot):
     """
     Display two figures:
         1. A histogram with the distances for both X and Y coordinates.
-        2. A scatter plot with the distances for X and Y coordinates, as a funciton of the real magnitude.
+        2. A scatter plot with the distances for X and Y coordinates, as a function of the real magnitude.
     """
 
     def __init__(self, image, simulation):
@@ -369,7 +369,7 @@ class Magnitude(Plot):
         data_per_bin = []
         for b in np.arange(1, 1 + len(box_bins)):
             data_per_bin.append(delta_mag[data_bins == b])
-        ax.boxplot(data_per_bin, labels=[f'{b:.2f} ({len(d)})' for b, d in zip(box_bins,data_per_bin)])
+        ax.boxplot(data_per_bin, labels=[f'{b:.2f} ({len(d)})' for b, d in zip(box_bins, data_per_bin)])
         ax.axhline(0., linestyle='--', color='r')
         ax.set_xlabel(mag_col)
         ax.set_ylabel('$\\Delta$ Mag')
@@ -482,7 +482,7 @@ class Flags(Plot):
         self.__figure = plt.figure(figsize=_page_size)
         self.__ax1 = self.__figure.add_subplot(1, 2, 1)
         self.__ax1.imshow(image.for_display(), cmap=_img_cmap)
-        self.__ax2 = self.__figure.add_subplot(1, 2, 2)
+        self.__ax2 = self.__figure.add_subplot(1, 2, 2, sharex=self.__ax1, sharey=self.__ax1)
         self.__ax2.imshow(image.for_display(), cmap=_img_cmap)
 
     @staticmethod
@@ -538,6 +538,12 @@ class Flags(Plot):
         Forward the parameters to __set
         """
         self.__set(self.__ax2, *args, **kwargs)
+
+    def set_reference(self, *args, **kwargs):
+        """
+        Set the flags from the reference run
+        """
+        self.__set(self.__ax1, *args, **kwargs)
 
     def get_figures(self):
         """

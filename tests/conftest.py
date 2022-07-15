@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import sys
 from configparser import ConfigParser
 from pathlib import Path
@@ -127,7 +128,11 @@ def sourcextractor(request, test_configuration, sourcextractor_defaults, module_
     """
     Fixture for the SourceXtractor executable
     """
-    exe = Executable(os.path.expandvars(test_configuration.get('sourcextractor', 'binary')))
+    expanded = os.path.expandvars(test_configuration.get('sourcextractor', 'binary'))
+    which = shutil.which(expanded)
+    if which is None:
+        raise RuntimeError(f'Could not find {expanded}')
+    exe = Executable(shutil.which(os.path.expandvars(test_configuration.get('sourcextractor', 'binary'))))
 
     test_output_area = module_output_area / request.node.name
     return SourceXtractor(
