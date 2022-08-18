@@ -14,6 +14,7 @@ def parse_flag(*args):
 
 args = Arguments(engine="levmar", iterative=parse_flag)
 set_engine(args.engine)
+set_max_iterations(250)
 use_iterative_fitting(args.iterative)
 
 # Note that the hdu numbers need to be 1 higher for the compressed images!
@@ -31,8 +32,6 @@ top = ImageGroup(images=[
 )
 
 mesgroup = MeasurementGroup(top)
-set_max_iterations(250)
-set_engine('levmar')
 MAG_ZEROPOINT = 30.0
 x, y = get_pos_parameters()
 ra, dec = get_world_position_parameters(x, y)

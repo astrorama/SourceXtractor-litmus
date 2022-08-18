@@ -46,5 +46,5 @@ add_output_column('model_rad', rad)
 add_output_column('model_angle', angle)
 add_output_column('model_sersic', sersic)
 
-print_model_fitting_info(top)
+print_model_fitting_info(group)
 print_output_columns()
