@@ -71,6 +71,8 @@ class SourceXtractor(object):
         self.__output_catalog = None
         self.__env = os.environ.copy()
         self.__env['PYTHONPATH'] = self.__env.get('PYTHONPATH', '') + ':' + pythonpath
+        self.__env['OMP_DYNAMIC'] = 'false'
+        self.__env['OMP_NUM_THREADS'] = '1'
 
     def get_output_directory(self):
         return self.__output_dir
